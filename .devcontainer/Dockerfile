@@ -30,7 +30,7 @@ RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
 
 # Claude Code (native installer). ~/.claude is created here so the volume mounted over it is owned by the user
 RUN curl -fsSL https://claude.ai/install.sh | bash && mkdir -p ~/.claude
-# Made here so the GitHub CLI volume mounted over it is owned by the user
-RUN mkdir -p ~/.config/gh
+# Made here so the GitHub CLI and SSH volumes mounted over them are owned by the user
+RUN mkdir -p ~/.config/gh && mkdir -m 700 ~/.ssh
 ENV PATH=/home/$USERNAME/.local/bin:$PATH
 CMD ["/bin/bash"]

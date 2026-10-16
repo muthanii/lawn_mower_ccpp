@@ -17,7 +17,6 @@
                 "ms-vscode.cpptools-themes",
                 "ms-vscode.cmake-tools",
                 "ms-python.python",
-                "eamodio.gitlens",
                 "anthropic.claude-code",
                 "ranch-hand-robotics.rde-pack"
             ]
@@ -33,6 +32,8 @@
         "CLAUDE_CONFIG_DIR": "/home/${localEnv:USER}/.claude"
     },
     "runArgs": [
+        // Container name shown in Docker Desktop and `docker ps`
+        "--name=ros2-dev-${localWorkspaceFolderBasename}",
         "--net=host",
         "--pid=host",
         "--ipc=host",
@@ -46,9 +47,13 @@
         // Keeps the Claude Code login and settings across container rebuilds
         "source=claude-code-config-${devcontainerId},target=/home/${localEnv:USER}/.claude,type=volume",
         // Keeps the GitHub CLI login across container rebuilds
-        "source=gh-config-${devcontainerId},target=/home/${localEnv:USER}/.config/gh,type=volume"
+        "source=gh-config-${devcontainerId},target=/home/${localEnv:USER}/.config/gh,type=volume",
+        // Keeps the container's own SSH key across container rebuilds
+        "source=ssh-config-${devcontainerId},target=/home/${localEnv:USER}/.ssh,type=volume"
     ],
     "postCreateCommand": "sudo apt-get update && rosdep update && rosdep install --from-paths src --ignore-src -y && sudo chown -R $(whoami) /home/ws/",
+    // Makes the SSH key one time; adds it to GitHub once `gh` is logged in
+    "postStartCommand": "bash .devcontainer/setup-ssh.sh",
     "features": {
         "ghcr.io/devcontainers/features/github-cli:1": {}
     }
