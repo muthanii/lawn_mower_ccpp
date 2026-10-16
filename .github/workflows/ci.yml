@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  devcontainer:
+    name: Build dev container image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build image
+        run: docker build --build-arg USERNAME=ci .devcontainer
+
+  colcon:
+    name: Build and test packages
+    runs-on: ubuntu-latest
+    container: ros:lyrical
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install dependencies
+        run: |
+          apt-get update
+          rosdep update
+          rosdep install --from-paths src --ignore-src -y
+      - name: Build
+        run: |
+          source /opt/ros/lyrical/setup.bash
+          colcon build --event-handlers console_direct+
+      - name: Test
+        run: |
+          source /opt/ros/lyrical/setup.bash
+          colcon test --event-handlers console_direct+
+          colcon test-result --verbose
