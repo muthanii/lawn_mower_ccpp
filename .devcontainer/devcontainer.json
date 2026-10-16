@@ -1,5 +1,5 @@
 {
-    "name": "ROS 2 Development Container",
+    "name": "Local (WSL2 and NVIDIA GPU)",
     "privileged": true,
     "remoteUser": "${localEnv:USER}",
     "build": {

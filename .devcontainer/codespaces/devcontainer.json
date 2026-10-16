@@ -1,0 +1,46 @@
+{
+    // GitHub Codespaces: no GPU and no WSLg, so GUI apps show in a browser desktop (noVNC)
+    "name": "GitHub Codespaces",
+    "build": {
+        "dockerfile": "../Dockerfile",
+        "context": "..",
+        "args": {
+            "USERNAME": "ros"
+        }
+    },
+    "remoteUser": "ros",
+    // Gazebo needs more than the default 2-core machine
+    "hostRequirements": {
+        "cpus": 4,
+        "memory": "16gb"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-themes",
+                "ms-vscode.cmake-tools",
+                "ms-python.python",
+                "anthropic.claude-code",
+                "ranch-hand-robotics.rde-pack"
+            ]
+        }
+    },
+    "containerEnv": {
+        "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
+        "ROS_DOMAIN_ID": "42",
+        // Size of the noVNC desktop; the default 1440x768 cuts off the Gazebo window
+        "VNC_RESOLUTION": "1920x1080x16"
+    },
+    "forwardPorts": [6080],
+    "portsAttributes": {
+        "6080": {
+            "label": "Desktop (noVNC)"
+        }
+    },
+    "postCreateCommand": "sudo apt-get update && rosdep update && rosdep install --from-paths src --ignore-src -y",
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/desktop-lite:1": {}
+    }
+}
