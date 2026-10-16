@@ -16,7 +16,7 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 RUN apt-get update && apt-get upgrade -y
-RUN apt-get install -y python3-pip
+RUN apt-get install -y python3-pip openssh-client
 ENV SHELL=/bin/bash
 
 # ********************************************************
@@ -30,5 +30,7 @@ RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
 
 # Claude Code (native installer). ~/.claude is created here so the volume mounted over it is owned by the user
 RUN curl -fsSL https://claude.ai/install.sh | bash && mkdir -p ~/.claude
+# Made here so the GitHub CLI volume mounted over it is owned by the user
+RUN mkdir -p ~/.config/gh
 ENV PATH=/home/$USERNAME/.local/bin:$PATH
 CMD ["/bin/bash"]

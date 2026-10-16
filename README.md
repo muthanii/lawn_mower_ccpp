@@ -78,6 +78,45 @@ ros2 run turtlesim turtlesim_node
 
 A turtle window opens on your Windows desktop.
 
+## Use Git and GitHub
+
+The container has an SSH client and the GitHub CLI (`gh`).
+
+### SSH
+
+The container does not keep a copy of your SSH key. VS Code forwards the SSH agent from WSL into the container. Thus, you must start an agent in WSL and add your key to it before you open the folder.
+
+1. In WSL, add these lines to `~/.bashrc` (or `~/.zshrc`):
+
+   ```bash
+   if [ -z "$SSH_AUTH_SOCK" ]; then
+     eval "$(ssh-agent -s)" > /dev/null
+     ssh-add ~/.ssh/id_ed25519
+   fi
+   ```
+
+   Use the name of your key file in place of `id_ed25519`.
+
+2. Open a new WSL terminal, then open the folder with `code ~/ros2_ws`.
+
+3. In the container, run:
+
+   ```bash
+   ssh -T git@github.com
+   ```
+
+   GitHub replies with your user name. Then you can clone with SSH, for example `git clone git@github.com:OWNER/REPO.git`.
+
+### GitHub CLI
+
+Log in one time in the container:
+
+```bash
+gh auth login
+```
+
+When `gh` asks for the Git protocol, select **SSH**. The login stays in a Docker volume, so it is kept when you rebuild the container.
+
 ## Make your first package
 
 1. Go to the source folder:

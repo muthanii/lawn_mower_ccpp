@@ -44,7 +44,9 @@
         "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
         "source=/usr/lib/wsl,target=/usr/lib/wsl,type=bind",
         // Keeps the Claude Code login and settings across container rebuilds
-        "source=claude-code-config-${devcontainerId},target=/home/${localEnv:USER}/.claude,type=volume"
+        "source=claude-code-config-${devcontainerId},target=/home/${localEnv:USER}/.claude,type=volume",
+        // Keeps the GitHub CLI login across container rebuilds
+        "source=gh-config-${devcontainerId},target=/home/${localEnv:USER}/.config/gh,type=volume"
     ],
     "postCreateCommand": "sudo apt-get update && rosdep update && rosdep install --from-paths src --ignore-src -y && sudo chown -R $(whoami) /home/ws/",
     "features": {
