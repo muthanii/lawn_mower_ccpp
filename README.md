@@ -1,21 +1,51 @@
 # Lawn Mower CCPP
 
 [![CI](https://github.com/muthanii/lawn_mower_ccpp/actions/workflows/ci.yml/badge.svg)](https://github.com/muthanii/lawn_mower_ccpp/actions/workflows/ci.yml)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/muthanii/lawn_mower_ccpp?quickstart=1&devcontainer_path=.devcontainer%2Fcodespaces%2Fdevcontainer.json)
 
 Intelligent complete coverage path planning (CCPP) for an autonomous 4WD skid-steer lawn mower robot, using soft computing techniques.
 The project compares a boustrophedon planner with genetic algorithm or particle swarm optimization and a fuzzy logic controller against random-bounce mowing. It measures coverage, time and energy in Gazebo simulation.
 
 ## Environment
 
-The workspace runs in a VS Code Dev Container on Windows, through WSL2. The container has:
+The project runs in a dev container. The container has:
 
 - ROS 2 **Lyrical Luth**, sourced in every shell.
 - Gazebo with the `ros_gz` bridge, `xacro`, `robot_state_publisher`, RViz and `teleop_twist_keyboard`.
 - Fields2Cover, and the Python packages NumPy, SciPy, Matplotlib, Shapely, DEAP and scikit-fuzzy.
-- Hardware OpenGL on the NVIDIA GPU. GUI windows show on the Windows desktop through WSLg.
-- Claude Code, the GitHub CLI and an SSH client.
+- Claude Code and the GitHub CLI.
 
-## Setup
+You can run the container in two places:
+
+| | GitHub Codespaces | Your computer |
+| --- | --- | --- |
+| You need | A GitHub account and a browser | Windows 11 with WSL2, Docker, an NVIDIA GPU and VS Code |
+| GUI apps show | In a desktop in a browser tab | On the Windows desktop, through WSLg |
+| Graphics | Software rendering on the CPU | Hardware OpenGL on the GPU |
+| Workspace path | `/workspaces/lawn_mower_ccpp` | `/home/ws` |
+| Config | `.devcontainer/codespaces/devcontainer.json` | `.devcontainer/devcontainer.json` |
+
+## Run on GitHub Codespaces
+
+1. Click **Open in GitHub Codespaces** at the top of this page.
+2. Click **Create new codespace**.
+
+   The first start builds the container image. This takes 10 to 15 minutes.
+
+3. To see GUI apps, open the **Ports** tab in VS Code.
+4. On the **Desktop (noVNC)** row (port 6080), click the globe icon.
+5. In the browser tab that opens, click **Connect**.
+6. In a VS Code terminal, run:
+
+   ```bash
+   gz sim shapes.sdf
+   ```
+
+   The Gazebo window opens in the noVNC desktop.
+
+The codespace uses a 4-core machine, because Gazebo is slow on 2 cores. A GitHub account gets free Codespaces hours each month. Then GitHub bills you. To stop the billing, stop or delete the codespace at [github.com/codespaces](https://github.com/codespaces).
+
+## Run on your computer
 
 You need Windows 11 with WSL2, Docker, an NVIDIA GPU and VS Code with the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension.
 
@@ -32,17 +62,22 @@ You need Windows 11 with WSL2, Docker, an NVIDIA GPU and VS Code with the [Dev C
    ```
 
 3. Click **Reopen in Container**.
+4. When VS Code asks for a configuration, select **Local (WSL2 and NVIDIA GPU)**.
+5. In a VS Code terminal, run:
 
-The workspace is at `/home/ws` in the container. The container user gets the name of your WSL user, so open the folder from WSL, not from a Windows path.
+   ```bash
+   gz sim shapes.sdf
+   ```
 
-To check that the GUI works, run `gz sim shapes.sdf`.
+   The Gazebo window opens on the Windows desktop.
+
+The container user gets the name of your WSL user, so open the folder from WSL, not from a Windows path.
 
 ## Build
 
-ROS 2 packages go in `src/`. To build them and use the result in the current shell:
+ROS 2 packages go in `src/`. A new VS Code terminal opens in the workspace root. In the workspace root, build the packages and use the result in the current shell:
 
 ```bash
-cd /home/ws
 colcon build --symlink-install
 source install/setup.bash
 ```
@@ -55,7 +90,9 @@ rosdep install --from-paths src --ignore-src -y
 
 ## GitHub sign-in
 
-The container has its own SSH key. The key and the `gh` login stay in Docker volumes after a rebuild, so you sign in one time.
+In Codespaces, Git and `gh` are signed in when the codespace starts. Do not do these steps.
+
+On your computer, the container has its own SSH key. The key and the `gh` login stay in Docker volumes after a rebuild, so you sign in one time.
 
 1. Run `gh auth login`.
 2. For the Git protocol, select **SSH**.
