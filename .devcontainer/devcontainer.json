@@ -1,11 +1,11 @@
 {
     "name": "ROS 2 Development Container",
     "privileged": true,
-    "remoteUser": "muthanii",
+    "remoteUser": "${localEnv:USER}",
     "build": {
         "dockerfile": "Dockerfile",
         "args": {
-            "USERNAME": "muthanii"
+            "USERNAME": "${localEnv:USER}"
         }
     },
     "workspaceFolder": "/home/ws",
@@ -30,7 +30,7 @@
         "LD_LIBRARY_PATH": "/usr/lib/wsl/lib",
         "GALLIUM_DRIVER": "d3d12",
         "MESA_D3D12_DEFAULT_ADAPTER_NAME": "NVIDIA",
-        "CLAUDE_CONFIG_DIR": "/home/muthanii/.claude"
+        "CLAUDE_CONFIG_DIR": "/home/${localEnv:USER}/.claude"
     },
     "runArgs": [
         "--net=host",
@@ -44,7 +44,7 @@
         "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
         "source=/usr/lib/wsl,target=/usr/lib/wsl,type=bind",
         // Keeps the Claude Code login and settings across container rebuilds
-        "source=claude-code-config-${devcontainerId},target=/home/muthanii/.claude,type=volume"
+        "source=claude-code-config-${devcontainerId},target=/home/${localEnv:USER}/.claude,type=volume"
     ],
     "postCreateCommand": "sudo apt-get update && rosdep update && rosdep install --from-paths src --ignore-src -y && sudo chown -R $(whoami) /home/ws/",
     "features": {

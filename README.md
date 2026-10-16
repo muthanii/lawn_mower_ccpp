@@ -28,17 +28,17 @@ It uses ROS 2 **Lyrical Luth** and runs on Windows through WSL2, with GPU-accele
    git clone https://github.com/muthanii/ros2_quickstart.git ~/ros2_ws
    ```
 
-2. Open `.devcontainer/devcontainer.json`.
-3. Replace each `muthanii` with your WSL user name. Run `whoami` in WSL to get it.
-4. Open the folder in VS Code:
+2. Open the folder in VS Code from the WSL terminal:
 
    ```bash
    code ~/ros2_ws
    ```
 
-5. When VS Code asks, click **Reopen in Container**. You can also run **Dev Containers: Reopen in Container** from the Command Palette.
+3. When VS Code asks, click **Reopen in Container**. You can also run **Dev Containers: Reopen in Container** from the Command Palette.
 
 The first build takes some minutes. After it finishes, the workspace is at `/home/ws` in the container.
+
+The container user gets the same name as your WSL user. The name comes from the `USER` variable in WSL. Because of this, open the folder from WSL, not from a Windows path.
 
 ## Check the install
 
