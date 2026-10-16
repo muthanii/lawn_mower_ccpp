@@ -1,0 +1,53 @@
+{
+    "name": "ROS 2 Development Container",
+    "privileged": true,
+    "remoteUser": "muthanii",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "USERNAME": "muthanii"
+        }
+    },
+    "workspaceFolder": "/home/ws",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/home/ws,type=bind",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-themes",
+                "ms-vscode.cmake-tools",
+                "ms-python.python",
+                "eamodio.gitlens",
+                "anthropic.claude-code",
+                "ranch-hand-robotics.rde-pack"
+            ]
+        }
+    },
+    "containerEnv": {
+        "ROS_AUTOMATIC_DISCOVERY_RANGE": "LOCALHOST",
+        "ROS_DOMAIN_ID": "42",
+        // Hardware OpenGL through WSLg: Mesa's d3d12 driver on the NVIDIA GPU
+        "LD_LIBRARY_PATH": "/usr/lib/wsl/lib",
+        "GALLIUM_DRIVER": "d3d12",
+        "MESA_D3D12_DEFAULT_ADAPTER_NAME": "NVIDIA",
+        "CLAUDE_CONFIG_DIR": "/home/muthanii/.claude"
+    },
+    "runArgs": [
+        "--net=host",
+        "--pid=host",
+        "--ipc=host",
+        "--gpus=all",
+        "-e",
+        "DISPLAY=${env:DISPLAY}"
+    ],
+    "mounts": [
+        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
+        "source=/usr/lib/wsl,target=/usr/lib/wsl,type=bind",
+        // Keeps the Claude Code login and settings across container rebuilds
+        "source=claude-code-config-${devcontainerId},target=/home/muthanii/.claude,type=volume"
+    ],
+    "postCreateCommand": "sudo apt-get update && rosdep update && rosdep install --from-paths src --ignore-src -y && sudo chown -R $(whoami) /home/ws/",
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    }
+}
