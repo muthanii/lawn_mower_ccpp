@@ -17,7 +17,6 @@
                 "ms-vscode.cpptools-themes",
                 "ms-vscode.cmake-tools",
                 "ms-python.python",
-                "eamodio.gitlens",
                 "anthropic.claude-code",
                 "ranch-hand-robotics.rde-pack"
             ]
@@ -33,6 +32,8 @@
         "CLAUDE_CONFIG_DIR": "/home/${localEnv:USER}/.claude"
     },
     "runArgs": [
+        // Container name shown in Docker Desktop and `docker ps`
+        "--name=ros2-dev-${localWorkspaceFolderBasename}",
         "--net=host",
         "--pid=host",
         "--ipc=host",
