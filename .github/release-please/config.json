@@ -3,8 +3,9 @@
   "packages": {
     ".": {
       "release-type": "simple",
-      "package-name": "ros2_quickstart",
-      "version-file": ".github/release-please/version.txt"
+      "package-name": "lawn_mower_ccpp",
+      "version-file": ".github/release-please/version.txt",
+      "include-component-in-tag": false
     }
   }
 }
