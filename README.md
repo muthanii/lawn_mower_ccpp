@@ -1,5 +1,7 @@
 # ROS 2 Quickstart
 
+[![CI](https://github.com/muthanii/ros2_quickstart/actions/workflows/ci.yml/badge.svg)](https://github.com/muthanii/ros2_quickstart/actions/workflows/ci.yml)
+
 A ready-to-use ROS 2 development workspace in a VS Code Dev Container.
 It uses ROS 2 **Lyrical Luth** and runs on Windows through WSL2, with GPU-accelerated GUI tools such as RViz.
 
@@ -121,6 +123,9 @@ rosdep install --from-paths src --ignore-src -y
 
 ```text
 .
+├── .github/
+│   ├── release-please/     # Release Please config, manifest and version
+│   └── workflows/          # CI, PR title check and release workflows
 ├── .devcontainer/
 │   ├── Dockerfile          # Image: ROS 2 Lyrical, user, sudo, Claude Code
 │   └── devcontainer.json   # Container settings, mounts, GPU, extensions
@@ -165,6 +170,10 @@ After you change these files, run **Dev Containers: Rebuild Container**.
 - [ROS 2 documentation](https://docs.ros.org/en/lyrical/)
 - [ROS 2 tutorials](https://docs.ros.org/en/lyrical/Tutorials.html)
 - [Dev Containers documentation](https://code.visualstudio.com/docs/devcontainers/containers)
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
