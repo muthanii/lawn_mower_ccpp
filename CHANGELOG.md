@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/muthanii/ros2_quickstart/compare/ros2_quickstart-v1.1.0...ros2_quickstart-v1.2.0) (2026-10-16)
+
+
+### Features
+
+* **devcontainer:** keep a container SSH key across rebuilds ([#4](https://github.com/muthanii/ros2_quickstart/issues/4)) ([02facc4](https://github.com/muthanii/ros2_quickstart/commit/02facc41d11f83f4f186817e65a11411fcc1ba6a))
+
 ## [1.1.0](https://github.com/muthanii/ros2_quickstart/compare/ros2_quickstart-v1.0.0...ros2_quickstart-v1.1.0) (2026-10-16)
 
 
