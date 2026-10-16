@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.0](https://github.com/muthanii/ros2_quickstart/compare/ros2_quickstart-v1.2.0...ros2_quickstart-v1.3.0) (2026-10-16)
+
+
+### Features
+
+* **.gitignore:** add .claude/worktrees/ to ignore list ([d050269](https://github.com/muthanii/ros2_quickstart/commit/d050269fed792dd4f69000e007f7398c8ce950fc))
+* **.gitignore:** add CLAUDE.md to ignore list ([abbe17b](https://github.com/muthanii/ros2_quickstart/commit/abbe17bb0eae850d25e7e510b8da633793421e7e))
+* **devcontainer:** add Gazebo and coverage planning tools ([#6](https://github.com/muthanii/ros2_quickstart/issues/6)) ([ac400b3](https://github.com/muthanii/ros2_quickstart/commit/ac400b3e3e4c7f3a5e119e811b322070d7dfd300))
+
 ## [1.2.0](https://github.com/muthanii/ros2_quickstart/compare/ros2_quickstart-v1.1.0...ros2_quickstart-v1.2.0) (2026-10-16)
 
 
