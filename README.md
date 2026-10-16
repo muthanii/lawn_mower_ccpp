@@ -1,9 +1,11 @@
-# ROS 2 Quickstart
+# Lawn Mower CCPP
 
-[![CI](https://github.com/muthanii/ros2_quickstart/actions/workflows/ci.yml/badge.svg)](https://github.com/muthanii/ros2_quickstart/actions/workflows/ci.yml)
+[![CI](https://github.com/muthanii/lawn_mower_ccpp/actions/workflows/ci.yml/badge.svg)](https://github.com/muthanii/lawn_mower_ccpp/actions/workflows/ci.yml)
 
-A ready-to-use ROS 2 development workspace in a VS Code Dev Container.
-It uses ROS 2 **Lyrical Luth** and runs on Windows through WSL2, with GPU-accelerated GUI tools such as RViz.
+Intelligent complete coverage path planning (CCPP) for an autonomous 4WD skid-steer lawn mower robot, using soft computing techniques.
+The project compares a boustrophedon planner with genetic algorithm or particle swarm optimization and a fuzzy logic controller against random-bounce mowing. It measures coverage, time and energy in Gazebo simulation.
+
+The workspace runs in a VS Code Dev Container with ROS 2 **Lyrical Luth**. It runs on Windows through WSL2, with GPU-accelerated GUI tools such as RViz and Gazebo.
 
 ## What you get
 
@@ -29,13 +31,13 @@ It uses ROS 2 **Lyrical Luth** and runs on Windows through WSL2, with GPU-accele
 1. Clone the repository into your WSL file system:
 
    ```bash
-   git clone https://github.com/muthanii/ros2_quickstart.git ~/ros2_ws
+   git clone https://github.com/muthanii/lawn_mower_ccpp.git ~/lawn_mower_ccpp
    ```
 
 2. Open the folder in VS Code from the WSL terminal:
 
    ```bash
-   code ~/ros2_ws
+   code ~/lawn_mower_ccpp
    ```
 
 3. When VS Code asks, click **Reopen in Container**. You can also run **Dev Containers: Reopen in Container** from the Command Palette.
