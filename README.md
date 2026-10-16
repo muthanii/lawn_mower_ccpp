@@ -13,6 +13,8 @@ It uses ROS 2 **Lyrical Luth** and runs on Windows through WSL2, with GPU-accele
 - GUI apps that show on your Windows desktop through WSLg.
 - Hardware OpenGL on an NVIDIA GPU.
 - `rosdep` dependency install when the container is first made.
+- Gazebo with the `ros_gz` bridge, plus `xacro`, `robot_state_publisher`, RViz and `teleop_twist_keyboard`.
+- Coverage path planning tools: Fields2Cover, and the Python packages NumPy, SciPy, Matplotlib, Shapely, DEAP (genetic algorithms) and scikit-fuzzy (fuzzy logic).
 - Claude Code and the GitHub CLI preinstalled.
 
 ## Requirements

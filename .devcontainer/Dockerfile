@@ -17,6 +17,21 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y python3-pip openssh-client
+# Simulation (Gazebo through ros_gz), robot description and coverage planning tools
+RUN apt-get install -y \
+    ros-$ROS_DISTRO-ros-gz \
+    ros-$ROS_DISTRO-xacro \
+    ros-$ROS_DISTRO-robot-state-publisher \
+    ros-$ROS_DISTRO-rviz2 \
+    ros-$ROS_DISTRO-teleop-twist-keyboard \
+    ros-$ROS_DISTRO-fields2cover \
+    python3-numpy \
+    python3-matplotlib \
+    python3-scipy \
+    python3-shapely \
+    python3-deap
+# scikit-fuzzy has no apt package
+RUN pip install --break-system-packages scikit-fuzzy
 ENV SHELL=/bin/bash
 
 # ********************************************************
