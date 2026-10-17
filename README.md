@@ -1,7 +1,7 @@
 # Lawn Mower CCPP
 
 [![CI](https://github.com/muthanii/lawn_mower_ccpp/actions/workflows/ci.yml/badge.svg)](https://github.com/muthanii/lawn_mower_ccpp/actions/workflows/ci.yml)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/muthanii/lawn_mower_ccpp?quickstart=1&devcontainer_path=.devcontainer%2Fcodespaces%2Fdevcontainer.json)
+
 
 Intelligent complete coverage path planning (CCPP) for an autonomous 4WD skid-steer lawn mower robot, using soft computing techniques.
 The project compares a boustrophedon planner with genetic algorithm or particle swarm optimization and a fuzzy logic controller against random-bounce mowing. It measures coverage, time and energy in Gazebo simulation.
@@ -26,6 +26,8 @@ You can run the container in two places:
 | Config | `.devcontainer/codespaces/devcontainer.json` | `.devcontainer/devcontainer.json` |
 
 ## Run on GitHub Codespaces
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/muthanii/lawn_mower_ccpp?quickstart=1&devcontainer_path=.devcontainer%2Fcodespaces%2Fdevcontainer.json)
 
 1. Click **Open in GitHub Codespaces** at the top of this page.
 2. Click **Create new codespace**.
