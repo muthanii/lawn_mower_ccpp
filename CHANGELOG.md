@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.4.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.3.0...v1.4.0) (2026-10-17)
+
+
+### Features
+
+* **devcontainer:** add a GitHub Codespaces config and button ([#11](https://github.com/muthanii/lawn_mower_ccpp/issues/11)) ([cecd676](https://github.com/muthanii/lawn_mower_ccpp/commit/cecd67692e157646a57b2387523ed39c8ea80e1c))
+* **readme:** enhance README with Codespaces setup details ([a06f3a3](https://github.com/muthanii/lawn_mower_ccpp/commit/a06f3a385b3308dd16a4f419293c0b3201d246df))
+
 ## [1.3.0](https://github.com/muthanii/ros2_quickstart/compare/ros2_quickstart-v1.2.0...ros2_quickstart-v1.3.0) (2026-10-16)
 
 
