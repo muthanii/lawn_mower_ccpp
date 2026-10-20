@@ -7,18 +7,28 @@ log/
 __pycache__/
 *.pyc
 
-# LaTeX build files
-*.aux
-*.bbl
-*.blg
-*.fdb_latexmk
-*.fls
-*.log
-*.out
-*.spl
-*.synctex.gz
-*.toc
+# LaTeX build files (scoped to paper/ so they do not hide files elsewhere)
+paper/**/*.aux
+paper/**/*.bbl
+paper/**/*.bcf
+paper/**/*.blg
+paper/**/*.fdb_latexmk
+paper/**/*.fls
+paper/**/*.lof
+paper/**/*.log
+paper/**/*.lot
+paper/**/*.out
+paper/**/*.run.xml
+paper/**/*.spl
+paper/**/*.synctex.gz
+paper/**/*.toc
+paper/**/*.xdv
 paper/main.pdf
+
+# VS Code: C/C++ IntelliSense database and generated config
+.vscode/browse.vc.db*
+.vscode/ipch/
+.vscode/c_cpp_properties.json
 
 # Local editor and tool settings
 .claude/settings.local.json
