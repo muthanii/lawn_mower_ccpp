@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.4.0...v1.5.0) (2026-10-20)
+
+
+### Features
+
+* **paper:** add a LaTeX workspace for the journal paper ([8ae3bc8](https://github.com/muthanii/lawn_mower_ccpp/commit/8ae3bc86e95c2463f6e382428fb65212f8aa3721)), closes [#13](https://github.com/muthanii/lawn_mower_ccpp/issues/13)
+
+
+### Bug Fixes
+
+* **.gitignore:** ignore VS Code IntelliSense files and scope LaTeX rules to paper/ ([#16](https://github.com/muthanii/lawn_mower_ccpp/issues/16)) ([1227512](https://github.com/muthanii/lawn_mower_ccpp/commit/12275127e5d4116cad0071281a21303299e96d25))
+
 ## [1.4.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.3.0...v1.4.0) (2026-10-17)
 
 
