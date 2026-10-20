@@ -90,6 +90,38 @@ Before the first build, and after you add a dependency to a `package.xml`, insta
 rosdep install --from-paths src --ignore-src -y
 ```
 
+## Paper
+
+The journal paper is in `paper/`. It uses the Elsevier `elsarticle` class with numbered references. The target journal is *Biomimetic Intelligence and Robotics*.
+
+| Path | Content |
+| --- | --- |
+| `paper/main.tex` | Front matter, keywords and the order of the sections. |
+| `paper/sections/` | One `.tex` file for each section. |
+| `paper/references.bib` | References, exported from Zotero. Do not edit by hand. |
+| `paper/figures/` | Figures. Plotting scripts write their output here. |
+
+In the workspace root, build the PDF:
+
+```bash
+latexmk -pdf paper/main.tex
+```
+
+The PDF is `paper/main.pdf`. To delete the build files, run `latexmk -c paper/main.tex`.
+
+In VS Code, the LaTeX Workshop extension builds the PDF each time you save a `.tex` file. To see the PDF, open `paper/main.tex` and press `Ctrl+Alt+V`.
+
+To keep `paper/references.bib` up to date from Zotero:
+
+1. Install the [Better BibTeX](https://retorque.re/zotero-better-bibtex/) plugin in Zotero.
+2. Right-click the paper's collection and click **Export Collection**.
+3. For the format, select **Better BibTeX** and select **Keep updated**.
+4. Save the file as `paper/references.bib` in this repository.
+
+Zotero then writes the file again each time the collection changes.
+
+CI builds the PDF on each pull request. To download it, open the workflow run and find the **paper** artifact.
+
 ## GitHub sign-in
 
 In Codespaces, Git and `gh` are signed in when the codespace starts. Do not do these steps.

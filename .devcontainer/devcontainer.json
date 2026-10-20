@@ -18,7 +18,8 @@
                 "ms-vscode.cmake-tools",
                 "ms-python.python",
                 "anthropic.claude-code",
-                "ranch-hand-robotics.rde-pack"
+                "ranch-hand-robotics.rde-pack",
+                "james-yu.latex-workshop"
             ]
         }
     },

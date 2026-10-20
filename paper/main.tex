@@ -1,0 +1,53 @@
+% Journal paper for Biomimetic Intelligence and Robotics (Elsevier/KeAi).
+% Build from the repository root: latexmk -pdf paper/main.tex
+\documentclass[preprint,12pt]{elsarticle}
+
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{hyperref}
+
+% Plotting scripts write their figures to paper/figures/
+\graphicspath{{figures/}}
+
+\journal{Biomimetic Intelligence and Robotics}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{Intelligent Complete Coverage Path Planning for an Autonomous Lawn Mower Robot Using Soft Computing Techniques}
+
+\author[aff1]{Author Name\corref{cor1}}
+\ead{author@example.com}
+\cortext[cor1]{Corresponding author.}
+\affiliation[aff1]{organization={Department},
+            city={City},
+            country={Country}}
+
+\input{sections/abstract}
+
+\begin{keyword}
+complete coverage path planning \sep lawn mower robot \sep
+boustrophedon decomposition \sep genetic algorithm \sep
+particle swarm optimization \sep fuzzy logic control \sep energy efficiency
+\end{keyword}
+
+\end{frontmatter}
+
+\input{sections/introduction}
+\input{sections/related-work}
+\input{sections/problem-formulation}
+\input{sections/robot-energy-model}
+\input{sections/method}
+\input{sections/experimental-setup}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/conclusion}
+\input{sections/declarations}
+
+\bibliographystyle{elsarticle-num}
+\bibliography{references}
+
+\end{document}

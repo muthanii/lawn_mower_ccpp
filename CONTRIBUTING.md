@@ -34,6 +34,7 @@ CI runs on each pull request:
 
 - Builds the dev container image.
 - Builds and tests all packages in `src/` with `colcon`.
+- Builds the paper in `paper/` and uploads `main.pdf` as an artifact.
 - Checks that the pull request title uses the commit message format.
 
 ## Releases

@@ -40,3 +40,27 @@ jobs:
           source /opt/ros/lyrical/setup.bash
           colcon test --event-handlers console_direct+
           colcon test-result --verbose
+
+  paper:
+    name: Build paper
+    runs-on: ubuntu-latest
+    # Same Ubuntu release as the dev container image
+    container: ubuntu:resolute
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install TeX Live
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            latexmk \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-publishers \
+            texlive-fonts-recommended \
+            texlive-science
+      - name: Build
+        run: latexmk -pdf paper/main.tex
+      - uses: actions/upload-artifact@v7
+        with:
+          name: paper
+          path: paper/main.pdf

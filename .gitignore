@@ -7,6 +7,19 @@ log/
 __pycache__/
 *.pyc
 
+# LaTeX build files
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.spl
+*.synctex.gz
+*.toc
+paper/main.pdf
+
 # Local editor and tool settings
 .claude/settings.local.json
 .claude/worktrees/
