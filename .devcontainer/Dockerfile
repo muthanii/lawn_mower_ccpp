@@ -17,6 +17,8 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y python3-pip openssh-client
+# Encrypts the logins at rest on the local container (see unlock-logins.sh)
+RUN apt-get install -y gocryptfs
 # Simulation (Gazebo through ros_gz), robot description and coverage planning tools
 RUN apt-get install -y \
     ros-$ROS_DISTRO-ros-gz \
@@ -50,10 +52,12 @@ ENV SHELL=/bin/bash
 USER $USERNAME
 # VS Code overrides the image entrypoint, so source ROS in every interactive shell
 RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
+# The first terminal asks for the passphrase when the local vault volume is mounted and locked
+RUN echo 'if mountpoint -q ~/.vault-cipher && ! mountpoint -q ~/.vault; then bash /home/ws/.devcontainer/unlock-logins.sh; fi' >> ~/.bashrc
 
-# Claude Code (native installer). ~/.claude is created here so the volume mounted over it is owned by the user
-RUN curl -fsSL https://claude.ai/install.sh | bash && mkdir -p ~/.claude
-# Made here so the GitHub CLI and SSH volumes mounted over them are owned by the user
-RUN mkdir -p ~/.config/gh && mkdir -m 700 ~/.ssh
+# Claude Code (native installer)
+RUN curl -fsSL https://claude.ai/install.sh | bash
+# Made here so the vault volume mounted over ~/.vault-cipher is owned by the user
+RUN mkdir -m 700 ~/.vault-cipher ~/.vault
 ENV PATH=/home/$USERNAME/.local/bin:$PATH
 CMD ["/bin/bash"]

@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
-# Gives the container its own SSH key for GitHub. ~/.ssh is a Docker volume,
-# so the key is made one time and kept across rebuilds. Safe to run again.
+# Gives the container its own SSH key for GitHub. ~/.ssh links into the
+# encrypted vault volume (see unlock-logins.sh), so the key is made one time
+# and kept across rebuilds. Safe to run again.
 set -euo pipefail
 
+# The key is in the encrypted vault; unlock-logins.sh runs this again after it unlocks
+if mountpoint -q ~/.vault-cipher && ! mountpoint -q ~/.vault; then
+    echo "Logins are locked. Open a terminal and enter the passphrase."
+    exit 0
+fi
+
 key=~/.ssh/id_ed25519
+mkdir -p ~/.ssh
 chmod 700 ~/.ssh
 
 if [ ! -f "$key" ]; then
