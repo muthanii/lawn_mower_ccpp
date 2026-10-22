@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.6.0...v1.7.0) (2026-10-22)
+
+
+### Features
+
+* **devcontainer:** encrypt the Claude Code, gh and SSH logins with gocryptfs ([#17](https://github.com/muthanii/lawn_mower_ccpp/issues/17)) ([f7fa7a3](https://github.com/muthanii/lawn_mower_ccpp/commit/f7fa7a38866dc4dbd03547f9fcc67e30f07e5809))
+* **readme:** add DOI badge to README ([#18](https://github.com/muthanii/lawn_mower_ccpp/issues/18)) ([a1d874f](https://github.com/muthanii/lawn_mower_ccpp/commit/a1d874f45ba227b734043ec543c07e8fdac65a12))
+
 ## [1.6.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.5.0...v1.6.0) (2026-10-22)
 
 
