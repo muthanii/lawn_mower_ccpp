@@ -126,14 +126,25 @@ CI builds the PDF on each pull request. To download it, open the workflow run an
 
 In Codespaces, Git and `gh` are signed in when the codespace starts. Do not do these steps.
 
-On your computer, the container has its own SSH key. The key and the `gh` login stay in Docker volumes after a rebuild, so you sign in one time.
+On your computer, the container has its own SSH key. The key, the `gh` login and the Claude Code login stay in an encrypted Docker volume after a rebuild, so you sign in one time.
 
-1. Run `gh auth login`.
-2. For the Git protocol, select **SSH**.
-3. For the SSH key, select `~/.ssh/id_ed25519.pub`.
-4. Run `ssh -T git@github.com` to check the connection.
+1. Open a terminal. The first time, pick a passphrase for the logins.
+2. Run `gh auth login`.
+3. For the Git protocol, select **SSH**.
+4. For the SSH key, select `~/.ssh/id_ed25519.pub`.
+5. Run `ssh -T git@github.com` to check the connection.
 
 At each start, `.devcontainer/setup-ssh.sh` makes the key if there is none and adds it to GitHub as **ros2-devcontainer**.
+
+### Encrypted logins
+
+`~/.claude`, `~/.config/gh` and `~/.ssh` link into `~/.vault`. [gocryptfs](https://nuetzlich.net/gocryptfs/) keeps the files encrypted in the `vault-*` Docker volume and shows them in `~/.vault` only while it is unlocked.
+
+- After each start, the first terminal asks for the passphrase. Until you enter it, Claude Code and `gh` are signed out. If the Claude Code panel opened first, reload the window after you unlock.
+- To unlock again, run `bash .devcontainer/unlock-logins.sh`. To lock, run `fusermount3 -u ~/.vault`.
+- If you forget the passphrase, run `rm -rf ~/.vault-cipher/*`, open a new terminal to pick a new one, and sign in again.
+
+The first unlock moves the files from the old plain-text volumes (`claude-code-config-*`, `gh-config-*`, `ssh-config-*`) into the vault and empties them. Then remove their three lines from `mounts` in `.devcontainer/devcontainer.json`, rebuild, and delete the volumes in Docker Desktop.
 
 ## Container settings
 

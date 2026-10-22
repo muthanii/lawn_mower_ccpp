@@ -45,15 +45,16 @@
     "mounts": [
         "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind",
         "source=/usr/lib/wsl,target=/usr/lib/wsl,type=bind",
-        // Keeps the Claude Code login and settings across container rebuilds
-        "source=claude-code-config-${devcontainerId},target=/home/${localEnv:USER}/.claude,type=volume",
-        // Keeps the GitHub CLI login across container rebuilds
-        "source=gh-config-${devcontainerId},target=/home/${localEnv:USER}/.config/gh,type=volume",
-        // Keeps the container's own SSH key across container rebuilds
-        "source=ssh-config-${devcontainerId},target=/home/${localEnv:USER}/.ssh,type=volume"
+        // Keeps the Claude Code login, the gh login and the SSH key across rebuilds, encrypted with gocryptfs
+        "source=vault-${devcontainerId},target=/home/${localEnv:USER}/.vault-cipher,type=volume",
+        // The old plain-text volumes. unlock-logins.sh moves their files into the vault one time and empties them.
+        // Remove these three lines after the move.
+        "source=claude-code-config-${devcontainerId},target=/home/${localEnv:USER}/.vault-legacy/claude,type=volume",
+        "source=gh-config-${devcontainerId},target=/home/${localEnv:USER}/.vault-legacy/gh,type=volume",
+        "source=ssh-config-${devcontainerId},target=/home/${localEnv:USER}/.vault-legacy/ssh,type=volume"
     ],
     "postCreateCommand": "sudo apt-get update && rosdep update && rosdep install --from-paths src --ignore-src -y && sudo chown -R $(whoami) /home/ws/",
-    // Makes the SSH key one time; adds it to GitHub once `gh` is logged in
+    // Makes the SSH key one time; adds it to GitHub once `gh` is logged in. Waits for the vault to unlock.
     "postStartCommand": "bash .devcontainer/setup-ssh.sh",
     "features": {
         "ghcr.io/devcontainers/features/github-cli:1": {}
