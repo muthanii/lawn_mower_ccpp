@@ -1,6 +1,6 @@
 # Lawn Mower CCPP
 
-[![CI](https://github.com/muthanii/lawn_mower_ccpp/actions/workflows/ci.yml/badge.svg)](https://github.com/muthanii/lawn_mower_ccpp/actions/workflows/ci.yml)
+[![CI](https://github.com/muthanii/lawn_mower_ccpp/actions/workflows/ci.yml/badge.svg)](https://github.com/muthanii/lawn_mower_ccpp/actions/workflows/ci.yml) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23554288.svg)](https://doi.org/10.5281/zenodo.23554288)
 
 
 Intelligent complete coverage path planning (CCPP) for an autonomous 4WD skid-steer lawn mower robot, using soft computing techniques.
