@@ -90,6 +90,10 @@ Before the first build, and after you add a dependency to a `package.xml`, insta
 rosdep install --from-paths src --ignore-src -y
 ```
 
+## Robot
+
+All robot parameters live in one config file, `src/lawn_mower_robot/config/robot/<robot>.yaml`. The planner, energy model, controller and Gazebo launch read it, so you select a robot with a launch argument, for example `robot:=pioneer3at`. The Pioneer 3-AT is a placeholder until the faculty robot is measured. See [`src/lawn_mower_robot/README.md`](src/lawn_mower_robot/README.md).
+
 ## Paper
 
 The journal paper is in `paper/`. It uses the Elsevier `elsarticle` class with numbered references. The target journal is *Biomimetic Intelligence and Robotics*.

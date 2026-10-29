@@ -1,0 +1,110 @@
+# Pioneer 3-AT (Adept MobileRobots), placeholder for the faculty robot.
+#
+# Each parameter has a value, a unit and a source key from `sources`. The
+# loader (lawn_mower_robot/robot_config.py) rejects missing fields, unknown
+# fields, TODO values, wrong units and unknown source keys. Values with
+# `source: assumption` are logged as a warning whenever the config is loaded.
+#
+# The Pioneer 3-AT is much smaller and lower-power than the proposal's platform
+# (4 x 24 V / 10 A / 250 W motors). Energy numbers from this file are pipeline
+# checks, not paper results.
+
+name: pioneer3at
+
+sources:
+  datasheet: >-
+    Adept MobileRobots, "Pioneer 3-AT" datasheet, Rev. A (P3AT-RevA).
+  amr_urdf: >-
+    MobileRobots, amr-ros-config, description/urdf/pioneer3at.urdf.xacro,
+    https://github.com/MobileRobots/amr-ros-config (official ROS description).
+  webots_proto: >-
+    Cyberbotics, Webots Pioneer3at.proto (R2025a),
+    https://github.com/cyberbotics/webots/blob/master/projects/robots/adept/pioneer3/protos/Pioneer3at.proto
+  webots_guide: >-
+    Cyberbotics, Webots User Guide, "Adept's Pioneer 3-AT",
+    https://github.com/cyberbotics/webots-doc/blob/master/guide/pioneer-3at.md
+  osrf_model: >-
+    OSRF, gazebo_models/pioneer3at/model.sdf,
+    https://github.com/osrf/gazebo_models/tree/master/pioneer3at (the downloaded Gazebo model).
+  yu2010: >-
+    W. Yu, O. Y. Chuy, E. G. Collins, P. Hollis, "Analysis and experimental
+    verification for dynamic modeling of a skid-steered wheeled vehicle",
+    IEEE Trans. Robotics 26(2):340-353, 2010. Pioneer 3-AT on a vinyl lab floor.
+  wang2015: >-
+    T. Wang, Y. Wu, J. Liang, C. Han, J. Chen, Q. Zhao, "Analysis and experimental
+    kinematics of a skid-steering wheeled robot based on a laser scanner sensor",
+    Sensors 15(5):9681-9702, 2015, doi:10.3390/s150509681. Reuses the Pioneer 3-AT
+    lab-surface coefficients of Yu et al.
+  derived: Computed from other values in this file; the note gives the formula.
+  assumption: >-
+    Modelling assumption with no published Pioneer 3-AT value. Replace with a
+    measurement before using the number in results.
+
+parameters:
+  geometry:
+    track_width: {value: 0.394, unit: m, source: amr_urdf,
+                  note: "Wheel centres at y = +-(0.156 axle + 0.041 hub)"}
+    wheelbase: {value: 0.269, unit: m, source: amr_urdf,
+                note: "Axles at x = +0.135 and -0.134"}
+    wheel_radius: {value: 0.111, unit: m, source: amr_urdf,
+                   note: "Collision cylinder. Datasheet tyre diameter is 21.5 cm (r = 0.1075 m)"}
+    wheel_width: {value: 0.075, unit: m, source: amr_urdf}
+    body_length: {value: 0.508, unit: m, source: webots_guide}
+    body_width: {value: 0.497, unit: m, source: webots_guide}
+    body_height: {value: 0.277, unit: m, source: webots_guide}
+
+  inertia:
+    mass: {value: 12.0, unit: kg, source: datasheet,
+           note: "Datasheet robot weight. amr_urdf instead models 18.6 kg + 3 x 2.4 kg batteries"}
+    wheel_mass: {value: 1.2, unit: kg, source: amr_urdf}
+    yaw_inertia: {value: 0.505, unit: kg*m^2, source: derived,
+                  note: "Solid box m (body_length^2 + body_width^2) / 12"}
+
+  drive:
+    wheel_count: {value: 4, unit: '1', source: datasheet, note: "4-wheel, 4-motor skid steer"}
+    gear_ratio: {value: null, unit: '1', source: datasheet,
+                 note: "Not in the datasheet; see the Pioneer 3 Operations Manual. Not used by the models"}
+    wheel_max_speed: {value: 6.4, unit: rad/s, source: webots_proto,
+                      note: "RotationalMotor maxVelocity; 6.4 x 0.111 = 0.71 m/s matches the datasheet top speed"}
+    wheel_max_torque: {value: 20.0, unit: N*m, source: webots_proto, note: "RotationalMotor maxTorque"}
+    drivetrain_efficiency: {value: 0.6, unit: '1', source: assumption,
+                            note: "Typical small brushed DC gearmotor and driver"}
+
+  motor:
+    count: {value: 4, unit: '1', source: datasheet}
+    rated_voltage: {value: 12.0, unit: V, source: datasheet, note: "12 V battery bus"}
+    rated_current: {value: null, unit: A, source: datasheet, note: "Not published. Not used by the models"}
+    rated_power: {value: null, unit: W, source: datasheet, note: "Not published. Not used by the models"}
+
+  battery:
+    voltage: {value: 12.0, unit: V, source: datasheet}
+    capacity: {value: 21.6, unit: A*h, source: derived,
+               note: "3 x 7.2 Ah sealed lead-acid (datasheet)"}
+
+  limits:
+    max_linear_speed: {value: 0.7, unit: m/s, source: datasheet}
+    max_angular_speed: {value: 140, unit: deg/s, source: datasheet}
+    max_linear_acceleration: {value: 0.3, unit: m/s^2, source: assumption}
+    max_angular_acceleration: {value: 100, unit: deg/s^2, source: assumption}
+
+  terrain:
+    rolling_resistance: {value: 0.0371, unit: '1', source: wang2015,
+                         note: "Lab surface, after Yu et al. (2010)"}
+    lateral_friction: {value: 0.4437, unit: '1', source: wang2015,
+                       note: "Lab surface, after Yu et al. (2010). wang2015 lists 0.4437 and 0.3093; check which is the lateral coefficient in yu2010"}
+    longitudinal_friction: {value: 1.0, unit: '1', source: osrf_model, note: "Wheel <mu>"}
+    icr_expansion_factor: {value: 1.5, unit: '1', source: yu2010,
+                           note: "Vinyl lab surface; above 2 on concrete. Grass needs its own value"}
+    longitudinal_slip: {value: 0.0, unit: '1', source: assumption,
+                        note: "Steady slip folded into icr_expansion_factor"}
+
+  electrical:
+    auxiliary_power: {value: 0.0, unit: W, source: assumption,
+                      note: "Only traction energy is counted for the placeholder"}
+
+  gazebo:
+    model_name: {value: pioneer3at, source: osrf_model}
+    chassis_mesh: {value: "model://pioneer3at/meshes/chassis.dae", source: osrf_model}
+    wheel_mesh: {value: "model://pioneer3at/meshes/wheel.dae", source: osrf_model}
+    chassis_mesh_offset_z: {value: 0.06, unit: m, source: osrf_model,
+                            note: "Chassis link origin is 0.06 m above the wheel axles"}
