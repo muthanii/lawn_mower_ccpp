@@ -1,0 +1,102 @@
+# Pioneer 3-AT (Adept MobileRobots), placeholder for the faculty robot.
+#
+# Each parameter has a value, a unit and a source key from `sources`. The
+# loader (lawn_mower_robot/robot_config.py) rejects missing fields, unknown
+# fields, TODO values, wrong units and unknown source keys. Values with
+# `source: assumption` are logged as a warning whenever the config is loaded.
+#
+# The Pioneer 3-AT is much smaller and lower-power than the proposal's platform
+# (4 x 24 V / 10 A / 250 W motors). Energy numbers from this file are pipeline
+# checks, not paper results.
+
+name: pioneer3at
+
+sources:
+  datasheet: >-
+    Adept Technology, "Pioneer 3-AT" datasheet, 09366-P3AT Rev. A, 2011.
+    https://www.generationrobots.com/media/Pioneer3AT-P3AT-RevA-datasheet.pdf
+  amr_urdf: >-
+    MobileRobots, amr-ros-config, description/urdf/pioneer3at.urdf.xacro,
+    https://github.com/MobileRobots/amr-ros-config (official ROS description).
+  yu2009: >-
+    W. Yu, O. Chuy, E. G. Collins, P. Hollis, "Dynamic modeling of a skid-steered
+    wheeled vehicle with experimental verification", Proc. IEEE/RSJ IROS 2009,
+    pp. 4212-4219, Table II. Modified Pioneer 3-AT on a vinyl lab surface.
+  p3_manual: >-
+    MobileRobots, Pioneer 3 Operations Manual, battery section, as reproduced at
+    https://cooprobo.readthedocs.io/en/latest/mobile/pioneer/hard/pioneer-batteries.html
+  osrf_model: >-
+    OSRF, gazebo_models/pioneer3at/model.sdf,
+    https://github.com/osrf/gazebo_models/tree/master/pioneer3at (the downloaded Gazebo model).
+  derived: Computed from other values in this file; the note gives the formula.
+  assumption: >-
+    Modelling assumption with no published Pioneer 3-AT value. Replace with a
+    measurement before using the number in results.
+
+parameters:
+  geometry:
+    track_width: {value: 0.394, unit: m, source: amr_urdf,
+                  note: "Wheel centres at y = +-(0.156 axle + 0.041 hub). yu2009 uses B = 0.40"}
+    wheelbase: {value: 0.268, unit: m, source: datasheet, note: "Dimension drawing; amr_urdf gives 0.269"}
+    wheel_radius: {value: 0.111, unit: m, source: amr_urdf,
+                   note: "Datasheet drawing shows a 222 mm wheel; yu2009 uses r = 0.1075"}
+    wheel_width: {value: 0.075, unit: m, source: amr_urdf}
+    body_length: {value: 0.508, unit: m, source: datasheet}
+    body_width: {value: 0.497, unit: m, source: datasheet}
+    body_height: {value: 0.277, unit: m, source: datasheet}
+
+  inertia:
+    mass: {value: 12.0, unit: kg, source: datasheet,
+           note: "Robot weight with one battery. amr_urdf models 18.6 kg + 3 x 2.4 kg batteries; the modified robot of yu2009 is 30.6 kg"}
+    wheel_mass: {value: 1.2, unit: kg, source: amr_urdf}
+    yaw_inertia: {value: 0.505, unit: kg*m^2, source: derived,
+                  note: "Solid box m (body_length^2 + body_width^2) / 12"}
+
+  drive:
+    wheel_count: {value: 4, unit: '1', source: datasheet, note: "Four-wheel, four-motor skid steer"}
+    gear_ratio: {value: 49.8, unit: '1', source: yu2009}
+    wheel_max_speed: {value: 9.78, unit: rad/s, source: derived,
+                      note: "No-load motor speed / gear ratio = 487.1 / 49.8 (yu2009)"}
+    wheel_max_torque: {value: 6.30, unit: N*m, source: derived,
+                       note: "Continuous: K_T I_max gr = 0.023 x 5.5 x 49.8 (yu2009). Stall: 0.277 x 49.8 = 13.8"}
+    drivetrain_efficiency: {value: 0.6, unit: '1', source: assumption,
+                            note: "yu2009 uses an efficiency but gives no value"}
+
+  motor:
+    count: {value: 4, unit: '1', source: datasheet}
+    rated_voltage: {value: 12.0, unit: V, source: yu2009, note: "Nominal voltage"}
+    rated_current: {value: 5.5, unit: A, source: yu2009, note: "Max continuous current"}
+    rated_power: {value: 66.0, unit: W, source: derived, note: "rated_voltage x rated_current (electrical input)"}
+
+  battery:
+    voltage: {value: 12.0, unit: V, source: p3_manual, note: "Sealed lead-acid, 12 VDC"}
+    capacity: {value: 21.6, unit: A*h, source: derived,
+               note: "3 x 7.2 Ah (datasheet: up to 3 batteries, 7.2 Ah each)"}
+
+  limits:
+    max_linear_speed: {value: 0.7, unit: m/s, source: datasheet}
+    max_angular_speed: {value: 140, unit: deg/s, source: datasheet}
+    max_linear_acceleration: {value: 0.3, unit: m/s^2, source: assumption}
+    max_angular_acceleration: {value: 100, unit: deg/s^2, source: assumption}
+
+  terrain:
+    rolling_resistance: {value: 0.0371, unit: '1', source: yu2009,
+                         note: "Vinyl lab surface; 0.051 on asphalt"}
+    lateral_friction: {value: 0.4437, unit: '1', source: yu2009,
+                       note: "mu_sa, friction of a wheel whose motor propels it (both sides in an in-place turn). Braking wheel mu_op = 0.3093. yu2009 uses these in a shear-stress model, not Coulomb"}
+    longitudinal_friction: {value: 1.0, unit: '1', source: osrf_model, note: "Wheel <mu>"}
+    icr_expansion_factor: {value: 1.5, unit: '1', source: yu2009,
+                           note: "Vinyl lab surface; above 2 on concrete. Grass needs its own value"}
+    longitudinal_slip: {value: 0.0, unit: '1', source: assumption,
+                        note: "Steady slip folded into icr_expansion_factor"}
+
+  electrical:
+    auxiliary_power: {value: 0.0, unit: W, source: assumption,
+                      note: "Only traction energy is counted for the placeholder"}
+
+  gazebo:
+    model_name: {value: pioneer3at, source: osrf_model}
+    chassis_mesh: {value: "model://pioneer3at/meshes/chassis.dae", source: osrf_model}
+    wheel_mesh: {value: "model://pioneer3at/meshes/wheel.dae", source: osrf_model}
+    chassis_mesh_offset_z: {value: 0.06, unit: m, source: osrf_model,
+                            note: "Chassis link origin is 0.06 m above the wheel axles"}

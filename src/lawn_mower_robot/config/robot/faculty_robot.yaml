@@ -1,0 +1,87 @@
+# Faculty robot: STUB. Loading this file fails until every TODO is replaced.
+#
+# Measurements needed from the faculty robot (with how to get them):
+#   geometry  - track width B and wheelbase L between wheel centres, wheel
+#               radius r (loaded, measured as distance per wheel revolution / 2 pi),
+#               tyre width, overall length, width and height (tape measure).
+#   inertia   - total operating mass with batteries (scale), mass of one wheel,
+#               yaw inertia I_z (bifilar pendulum, or CAD).
+#   drive     - gear ratio and wheel max speed (motor datasheet or no-load test),
+#               max wheel torque, drivetrain efficiency (battery power vs
+#               wheel power on a test run).
+#   motor     - motor datasheet (rated current and power are prefilled from
+#               the proposal; confirm them on the motor plate).
+#   battery   - nominal voltage and capacity (battery label).
+#   limits    - max linear and angular speed and accelerations of the
+#               controller or firmware.
+#   terrain   - on the target grass: rolling resistance mu_r (tow or coast-down
+#               test), lateral friction mu_l (turn-in-place power), ICR
+#               expansion factor chi (commanded vs measured yaw rate),
+#               longitudinal slip s (commanded vs measured speed).
+#   electrical- idle power draw of computer, sensors and drivers (power meter).
+#   gazebo    - visual meshes if a CAD model exists, else null (box and cylinders).
+#
+# For every value, add a source key below (e.g. `measured` with the date and
+# method) so the paper can cite it.
+
+name: faculty_robot
+
+sources:
+  proposal: Project proposal, drive platform of 4 x 24 V / 10 A / 250 W motors.
+  measured: TODO date, place and method of the faculty robot measurements.
+  assumption: >-
+    Modelling assumption, to be replaced with a measurement before results.
+
+parameters:
+  geometry:
+    track_width: {value: TODO, unit: m, source: measured}
+    wheelbase: {value: TODO, unit: m, source: measured}
+    wheel_radius: {value: TODO, unit: m, source: measured}
+    wheel_width: {value: TODO, unit: m, source: measured}
+    body_length: {value: TODO, unit: m, source: measured}
+    body_width: {value: TODO, unit: m, source: measured}
+    body_height: {value: TODO, unit: m, source: measured}
+
+  inertia:
+    mass: {value: TODO, unit: kg, source: measured}
+    wheel_mass: {value: TODO, unit: kg, source: measured}
+    yaw_inertia: {value: TODO, unit: kg*m^2, source: measured}
+
+  drive:
+    wheel_count: {value: 4, unit: '1', source: proposal}
+    gear_ratio: {value: TODO, unit: '1', source: measured}
+    wheel_max_speed: {value: TODO, unit: rad/s, source: measured}
+    wheel_max_torque: {value: TODO, unit: N*m, source: measured}
+    drivetrain_efficiency: {value: TODO, unit: '1', source: measured}
+
+  motor:
+    count: {value: 4, unit: '1', source: proposal}
+    rated_voltage: {value: 24.0, unit: V, source: proposal}
+    rated_current: {value: 10.0, unit: A, source: proposal}
+    rated_power: {value: 250.0, unit: W, source: proposal}
+
+  battery:
+    voltage: {value: TODO, unit: V, source: measured}
+    capacity: {value: TODO, unit: A*h, source: measured}
+
+  limits:
+    max_linear_speed: {value: TODO, unit: m/s, source: measured}
+    max_angular_speed: {value: TODO, unit: rad/s, source: measured}
+    max_linear_acceleration: {value: TODO, unit: m/s^2, source: measured}
+    max_angular_acceleration: {value: TODO, unit: rad/s^2, source: measured}
+
+  terrain:
+    rolling_resistance: {value: TODO, unit: '1', source: measured}
+    lateral_friction: {value: TODO, unit: '1', source: measured}
+    longitudinal_friction: {value: TODO, unit: '1', source: measured}
+    icr_expansion_factor: {value: TODO, unit: '1', source: measured}
+    longitudinal_slip: {value: TODO, unit: '1', source: measured}
+
+  electrical:
+    auxiliary_power: {value: TODO, unit: W, source: measured}
+
+  gazebo:
+    model_name: {value: faculty_robot, source: measured}
+    chassis_mesh: {value: null, source: measured}
+    wheel_mesh: {value: null, source: measured}
+    chassis_mesh_offset_z: {value: null, unit: m, source: measured}
