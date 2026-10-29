@@ -2,7 +2,7 @@
 
 A skid-steer vehicle of track width B turns like a differential-drive vehicle
 of width chi * B, where chi >= 1 is the ICR expansion factor identified for the
-terrain (Yu et al., 2010; Mandow et al., 2007). Longitudinal slip s scales the
+terrain (Yu et al., 2009). Longitudinal slip s scales the
 wheel rim speed to ground speed:
 
     v     = r (1 - s) (w_R + w_L) / 2

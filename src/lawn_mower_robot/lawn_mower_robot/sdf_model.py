@@ -16,6 +16,9 @@ from xml.sax.saxutils import escape
 
 from .kinematics import SkidSteerKinematics
 
+# Gazebo physics has no continuous joint, so wheels are revolute without limits.
+UNLIMITED = 1e16
+
 WHEELS = (('front_left', 1, 1), ('rear_left', -1, 1),
           ('front_right', 1, -1), ('rear_right', -1, -1))
 
@@ -133,10 +136,11 @@ def build_sdf(cfg):
       {_visual('visual', wheel_visual)}
     </link>""")
         joints.append(f"""
-    <joint name="{wheel}_wheel_joint" type="continuous">
+    <joint name="{wheel}_wheel_joint" type="revolute">
       <parent>chassis</parent>
       <child>{wheel}_wheel</child>
-      <axis><xyz expressed_in="__model__">0 1 0</xyz></axis>
+      <axis><xyz expressed_in="__model__">0 1 0</xyz>
+        <limit><lower>{-UNLIMITED:g}</lower><upper>{UNLIMITED:g}</upper></limit></axis>
     </joint>""")
 
     def joint_tags(tag, side):

@@ -77,7 +77,7 @@ def test_unknown_source_fails():
 
 def test_required_null_fails_but_informational_null_passes():
     data = raw()
-    assert data['parameters']['drive']['gear_ratio']['value'] is None
+    data['parameters']['drive']['gear_ratio']['value'] = None
     parse_robot_config(copy.deepcopy(data))
     data['parameters']['inertia']['mass']['value'] = None
     assert any('inertia.mass: value is null' in p for p in problems(data))

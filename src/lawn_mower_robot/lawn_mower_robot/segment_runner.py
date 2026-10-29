@@ -73,7 +73,7 @@ class SegmentRunner(Node):
         self.model = SkidSteerEnergyModel.from_config(self.cfg)
         self.integrator = EnergyIntegrator(self.model)
         for name in self.cfg.assumptions:
-            self.get_logger().warn(f'{self.cfg.name}: {name} is an assumption, not a measurement')
+            self.get_logger().warning(f'{self.cfg.name}: {name} is an assumption, not a measurement')
 
         self.segments = [Segment.parse(s) for s in segments]
         self.rows = []
@@ -132,6 +132,12 @@ class SegmentRunner(Node):
             v, w = 0.0, sign * self.speed_fraction * self.kin.max_angular_speed
         return self.kin.saturate(v, w)
 
+    def braking_distance(self, seg):
+        v, w = self.command(seg)
+        if seg.kind == 'straight':
+            return v ** 2 / (2 * self.cfg.limits.max_linear_acceleration)
+        return w ** 2 / (2 * self.cfg.limits.max_angular_acceleration)
+
     def predicted(self, seg):
         v, w = self.command(seg)
         if seg.kind == 'straight':
@@ -153,7 +159,9 @@ class SegmentRunner(Node):
         seg = self.segments[self.index]
         twist = Twist()
         if self.phase == 'drive':
-            if abs(self.progress()) >= abs(seg.target):
+            # Stop commanding once the rest fits in the braking distance at the
+            # config's deceleration limit, so the robot stops near the target.
+            if abs(self.progress()) + self.braking_distance(seg) >= abs(seg.target):
                 self.phase = 'settle'
                 self.phase_start = self.now()
             else:

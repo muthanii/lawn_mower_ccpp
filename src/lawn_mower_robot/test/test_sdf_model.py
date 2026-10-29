@@ -45,3 +45,10 @@ def test_wheels_sit_on_the_ground(sdf, pioneer):
 def test_meshes_come_from_the_downloaded_model(sdf):
     uris = {u.text for u in sdf.iter('uri')}
     assert uris == {'model://pioneer3at/meshes/chassis.dae', 'model://pioneer3at/meshes/wheel.dae'}
+
+
+def test_wheel_joints_are_revolute(sdf):
+    # Gazebo turns continuous joints into fixed ones.
+    joints = sdf.findall('.//joint')
+    assert len(joints) == 4
+    assert all(j.get('type') == 'revolute' for j in joints)

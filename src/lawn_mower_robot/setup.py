@@ -21,7 +21,7 @@ setup(
     maintainer_email='mothana.alsaady@teebatkarbala.iq',
     description='Robot config, skid-steer kinematic and energy model, and Gazebo launch.',
     license='MIT',
-    tests_require=['pytest'],
+    extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
             'segment_runner = lawn_mower_robot.segment_runner:main',

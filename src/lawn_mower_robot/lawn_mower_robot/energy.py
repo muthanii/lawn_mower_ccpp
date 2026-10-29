@@ -10,7 +10,7 @@ m g shared equally by the four wheels at x = +-L/2:
 where v_L, v_R = v -+ omega chi B / 2 are the side ground speeds of the
 kinematic model and E_k = (m v^2 + I_z omega^2) / 2. Braking energy is not
 recovered. The lateral moment is the Coulomb form of Wong's turning
-resistance; Yu et al. (2010) show it falls as the turn radius grows, so this
+resistance; Yu et al. (2009) show it falls as the turn radius grows, so this
 over-estimates wide turns.
 
 Energies are in joules. All symbols come from the robot config.
