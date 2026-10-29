@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.7.0...v1.8.0) (2026-10-29)
+
+
+### Features
+
+* **robot:** Pioneer 3-AT placeholder with a swappable robot config ([#23](https://github.com/muthanii/lawn_mower_ccpp/issues/23)) ([27da279](https://github.com/muthanii/lawn_mower_ccpp/commit/27da2799ee1ba818f04ef35ef17eb20587f01aca))
+
 ## [1.7.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.6.0...v1.7.0) (2026-10-22)
 
 
