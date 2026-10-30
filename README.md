@@ -94,6 +94,10 @@ rosdep install --from-paths src --ignore-src -y
 
 All robot parameters live in one config file, `src/lawn_mower_robot/config/robot/<robot>.yaml`. The planner, energy model, controller and Gazebo launch read it, so you select a robot with a launch argument, for example `robot:=pioneer3at`. The Pioneer 3-AT is a placeholder until the faculty robot is measured. See [`src/lawn_mower_robot/README.md`](src/lawn_mower_robot/README.md).
 
+## Planning
+
+`src/lawn_mower_planning` plans the coverage path: BCD cells, lanes, A* transitions and the transition table that all cell-ordering methods share. It also has the Xie et al. (2024) GA–ACO baseline. See [`src/lawn_mower_planning/README.md`](src/lawn_mower_planning/README.md).
+
 ## Paper
 
 The journal paper is in `paper/`. It uses the Elsevier `elsarticle` class with numbered references. The target journal is *Biomimetic Intelligence and Robotics*.
