@@ -1,14 +1,45 @@
 # lawn_mower_planning
 
-Cell ordering for the coverage planner. The pipeline splits the lawn into cells (BCD), covers each cell with back-and-forth lanes and joins the cells with A*. This package decides the order in which the cells are visited. For now it has the parts that every ordering method shares, and the Xie et al. (2024) baseline (issue #21).
+The coverage planner and its cell ordering. The pipeline splits the lawn into cells (BCD), covers each cell with back-and-forth lanes and joins the cells with A* paths. An ordering method then decides the order in which the cells are visited. The package has the parts that every ordering method shares, and the Xie et al. (2024) baseline (issue #21).
 
 | Module | Content |
 | --- | --- |
+| `problem.py` | `build_problem`: lawn → cells → lanes → A* transitions → `TransitionTable`. `CoverageProblem.path` and `.coverage` turn a plan into waypoints, coverage % and overlap %. |
+| `decomposition.py` | Boustrophedon cell decomposition (BCD) of a polygon with obstacle holes. |
+| `lanes.py` | Back-and-forth lanes in one cell, in the four start-corner variants. |
+| `roadmap.py` | A* on the visibility graph of the free area: exact shortest paths among polygonal obstacles. |
+| `path_cost.py` | Length, turn count and energy of a polyline. Energy comes from the `lawn_mower_robot` skid-steer model. |
 | `transitions.py` | `TransitionTable`, the precomputed table that every ordering method reads. Also the exact variant decoder (`best_variants`) and `Plan`. |
 | `brute_force.py` | Exact ordering that tries every permutation, for maps of up to 9 cells. Used for sanity checks. |
 | `xie_ga_aco.py` | Re-implementation of the Xie et al. (2024) GA–ACO ordering, the main baseline. |
 
-The BCD, lane and A* code is not written yet. The tests use a synthetic lawn (`test/conftest.py`) in its place.
+## Pipeline
+
+```python
+from shapely.geometry import box
+from lawn_mower_planning.path_cost import PathCost
+from lawn_mower_planning.problem import build_problem
+from lawn_mower_robot.robot_config import load_robot_config, resolve_robot_config
+
+lawn = box(0, 0, 20, 10).difference(box(5, 3, 8, 6))   # obstacles are holes
+cost = PathCost.from_config(load_robot_config(resolve_robot_config('pioneer3at')))
+problem = build_problem(lawn, width=0.5, path_cost=cost, start=(1, 1, 0))
+problem.table          # TransitionTable with length, turns and energy
+```
+
+1. **Free area.** The lawn shrinks by `clearance` (default `width / 2`), so that the robot centre stays that far from the edges and obstacles.
+2. **Cells.** BCD with a sweep line along the lanes. `lane_angle` sets the lane heading in the world frame (default: along y). The geometry is computed in a frame where the lanes are vertical, and `path` turns it back.
+3. **Lanes.** A cell `w` wide gets `ceil(w / width)` lanes, spread evenly. The robot changes lane along a straight line, or along the cell boundary where the straight line would leave the cell. The 4 variants are the start corners.
+4. **Transitions.** A* on the visibility graph, from the exit of each `(cell, variant)` to the entry of every other one, and from the robot start.
+5. **Metrics.** The robot drives each straight from rest and turns in place at each vertex. One vertex with a heading change of more than 1° is one turn, so a lane change counts 2. The same rule applies inside cells, on transitions and at the junctions between them, including the turn into and out of each lane. So the turn count of a plan equals the turn count of its assembled path (tested). Energy is the sum of `SkidSteerEnergyModel.straight` and `.turn` over the segments and turns, at the robot's maximum linear and angular speed.
+
+`coverage` buffers the whole path, transitions included, by `width / 2`. Coverage is the part of the lawn inside this swath. Overlap is the area covered more than once, as a share of the swath. The clearance band along the lawn edges is never covered, so coverage stays below 100 % on every map. This is the same for every ordering method.
+
+Known simplifications, to state in the paper:
+
+- Point turns (stop-turn-go) everywhere. No arc turns at lane ends.
+- The A* paths are shortest in length, not in energy or turns, for both methods.
+- The cutter is on for transitions too, so transitions count toward coverage and overlap.
 
 ## Transition table
 
@@ -49,7 +80,7 @@ The algorithm:
 
 **Why not DEAP.** DEAP draws from the global `random` module, so a run could not be reproduced from its own seed. Also, rosdep has no `python3-deap` key, so CI could not install it. The operators are short, so they are written here on a NumPy generator.
 
-**Sanity check.** `test/test_xie_ga_aco.py` compares the result with `brute_force_order` on ten 7-cell maps. With 1000 evaluations (a fifth of the 5040 orders) it finds the exact optimum on all ten maps.
+**Sanity check.** `test/test_xie_ga_aco.py` compares the result with `brute_force_order` on ten synthetic 7-cell tables. With 1000 evaluations (a fifth of the 5040 orders) it finds the exact optimum on all ten. `test/test_pipeline.py` repeats the check on a 7-cell lawn built by the pipeline.
 
 ### Interpretation, to check against the full text
 
@@ -64,14 +95,14 @@ The full text was not available when this code was written. The authors were ask
 | ACO heuristic | `1 / cheapest A* transition`, kept static. Their "new heuristic update strategy" is not known. | `_heuristic` |
 | Pheromone update | Max–min ant system, global-best deposit, `rho = 0.1`, 20 ants, `alpha = 1`, `beta = 2`. Their "new pheromone update strategy" is not known. | `_ant_stage` |
 | Start and end | The plan starts at the robot start (if given) and ends in the last cell, with no return. | `TransitionTable.start` |
-| Turn count | The count that the table gives. The lane and A* code must count turns in the same way for both methods. | Table builder |
+| Turn count | One turn per vertex with a heading change of more than 1°, so a lane change counts 2. The paper may count a U-turn as 1. | `path_cost.py` |
 
 ### Fairness
 
 - Run both methods on the same maps, with the same seeds and the same `evaluations` budget, using one table per map.
 - Tune both methods with the same effort.
 - Report this as a re-implementation of Xie et al.'s ordering. Do not compare with the numbers in their paper, because they used different maps and a different robot.
-- Report their metrics (length and turns) next to energy. Coverage and overlap come from the lanes, so they are equal for both methods unless the lane code changes. Log them when the pipeline exists.
+- Report their metrics (length and turns) next to energy, with coverage and overlap from `CoverageProblem.coverage`. Coverage depends only a little on the order (through the transitions).
 
 ## Test
 

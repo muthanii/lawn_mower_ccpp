@@ -14,7 +14,7 @@ setup(
     zip_safe=True,
     maintainer='Muthana Ali',
     maintainer_email='mothana.alsaady@teebatkarbala.iq',
-    description='Cell transition table, brute-force ordering and the Xie et al. (2024) GA-ACO baseline.',
+    description='Coverage pipeline (BCD, lanes, A*) and cell ordering, with the Xie et al. (2024) GA-ACO baseline.',
     license='MIT',
     extras_require={'test': ['pytest']},
 )

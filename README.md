@@ -96,7 +96,7 @@ All robot parameters live in one config file, `src/lawn_mower_robot/config/robot
 
 ## Planning
 
-`src/lawn_mower_planning` orders the coverage cells. It has the transition table that all ordering methods share and the Xie et al. (2024) GA–ACO baseline. See [`src/lawn_mower_planning/README.md`](src/lawn_mower_planning/README.md).
+`src/lawn_mower_planning` plans the coverage path: BCD cells, lanes, A* transitions and the transition table that all cell-ordering methods share. It also has the Xie et al. (2024) GA–ACO baseline. See [`src/lawn_mower_planning/README.md`](src/lawn_mower_planning/README.md).
 
 ## Paper
 

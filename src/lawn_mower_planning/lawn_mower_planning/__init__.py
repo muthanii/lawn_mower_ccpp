@@ -1,1 +1,1 @@
-"""Cell ordering for the coverage planner."""
+"""Coverage planning: BCD cells, lanes, A* transitions and cell ordering."""

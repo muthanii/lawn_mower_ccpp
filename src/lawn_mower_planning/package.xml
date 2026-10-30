@@ -3,11 +3,13 @@
 <package format="3">
   <name>lawn_mower_planning</name>
   <version>0.1.0</version>
-  <description>Cell ordering for the coverage planner: the shared cell transition table, brute-force ordering and the Xie et al. (2024) GA-ACO baseline.</description>
+  <description>Coverage planning pipeline (BCD cells, lanes, A* transitions, cell transition table) and cell ordering: brute force and the Xie et al. (2024) GA-ACO baseline.</description>
   <maintainer email="mothana.alsaady@teebatkarbala.iq">Muthana Ali</maintainer>
   <license>MIT</license>
 
+  <exec_depend>lawn_mower_robot</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-shapely</exec_depend>
 
   <test_depend>python3-pytest</test_depend>
 
