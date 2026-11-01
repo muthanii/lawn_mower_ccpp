@@ -12,7 +12,8 @@ Protocol, the same for each method:
 - Each method gets GRID_SIZE settings, the first being its default before
   tuning, at budgets 1000 and 2000 with seeds 0-2: 60 runs per setting.
 - A setting scores the number of runs that reach the optimum; ties go to
-  the lower mean relative gap. The best setting becomes the default.
+  the lower mean relative gap (to GAP_DIGITS), then to the earlier setting,
+  so a full tie keeps the default. The best setting becomes the default.
 """
 
 import argparse
@@ -36,8 +37,9 @@ BUDGETS = (1000, 2000)
 RUN_SEEDS = (0, 1, 2)
 GRID_SIZE = 5
 TOLERANCE = 1e-9                        # relative; a run at most this far above the optimum hits it
+GAP_DIGITS = 9                          # mean gaps equal to this many digits tie
 
-# Settings tried per method. The first entry is the default before tuning.
+# Settings tried per method. The first entry was the default before tuning.
 GRIDS = {
     'energy_ga': [dict(population=50, mutation_rate=0.5), dict(population=100, mutation_rate=0.5),
                   dict(population=50, mutation_rate=0.3), dict(population=100, mutation_rate=0.3),
@@ -106,7 +108,7 @@ def tune(cases, methods=tuple(GRIDS), log=print):
                         rows.append(dict(method=method, setting=k, **setting, lawn=name,
                                          budget=budget, seed=seed, cost=cost, gap=gap))
             runs = len(gaps)
-            scores.append((-hits, float(np.mean(gaps)), k))
+            scores.append((-hits, round(float(np.mean(gaps)), GAP_DIGITS), k))
             log(f'{method} {setting}: {hits}/{runs} optimal, mean gap {np.mean(gaps):.5f}')
         best[method] = GRIDS[method][min(scores)[2]]
         log(f'{method}: best {best[method]}')

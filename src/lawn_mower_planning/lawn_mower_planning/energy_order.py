@@ -41,7 +41,7 @@ class EnergyGaParams:
     population: int = 50
     tournament: int = 3
     crossover_rate: float = 0.9
-    mutation_rate: float = 0.5
+    mutation_rate: float = 0.3
     elites: int = 2                # best orders copied unchanged to the next generation
     unique: bool = True            # re-mutate a child that is already in the population
     weights: tuple = ENERGY        # objective as (metric, weight) pairs

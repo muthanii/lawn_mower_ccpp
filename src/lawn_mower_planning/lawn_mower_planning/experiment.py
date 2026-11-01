@@ -34,6 +34,10 @@ from .xie_ga_aco import XieGaAcoParams, length_turns_order, xie2024_order
 BRUTE_FORCE_CELLS = 8  # energy_optimal runs only up to 8! = 40320 orders
 
 
+# Tuned with tuning.py (see the package README); the paper's settings tied for xie2024.
+TUNED_LENGTH_TURNS = XieGaAcoParams(population=100, ants=50, ga_share=0.3)
+
+
 @dataclass(frozen=True)
 class Settings:
     """One evaluation budget for every method, and each method's own parameters."""
@@ -42,6 +46,7 @@ class Settings:
     xie: XieGaAcoParams = XieGaAcoParams()
     ga: EnergyGaParams = EnergyGaParams()
     pso: EnergyPsoParams = EnergyPsoParams()
+    xie_length_turns: XieGaAcoParams = TUNED_LENGTH_TURNS
 
     def budgeted(self, params):
         """params with the shared budget."""
@@ -76,7 +81,7 @@ def _xie2024(problem, settings, seed):
 
 
 def _xie_length_turns(problem, settings, seed):
-    return length_turns_order(problem.table, settings.budgeted(settings.xie), seed)
+    return length_turns_order(problem.table, settings.budgeted(settings.xie_length_turns), seed)
 
 
 METHODS = {

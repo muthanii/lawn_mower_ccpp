@@ -13,6 +13,7 @@ The coverage planner and its cell ordering. The pipeline splits the lawn into ce
 | `brute_force.py` | Exact orderings (plans and closed tours) by trying every permutation, for maps of up to 9 cells. Used for sanity checks. |
 | `maps.py` | The shared test lawns: 10 lawns with 7 to 15 cells each. |
 | `experiment.py` | The experiment runner: every method on every lawn and seed, one CSV row per run. |
+| `tuning.py` | The tuning protocol: the same tuning effort for every method, on separate tuning lawns. |
 | `energy_order.py` | Our method: GA or PSO that orders the cells by modelled energy. |
 | `operators.py`, `search.py` | Permutation operators, and the evaluation budget and result shared by the searches. |
 | `xie_ga_aco.py` | Re-implementation of the Xie et al. (2024) HGACO ordering, the main baseline, and a length-and-turns ablation. |
@@ -125,12 +126,42 @@ Both searches minimise the modelled skid-steer energy of the whole plan: the cov
 
 | Search | Encoding and operators | Defaults |
 | --- | --- | --- |
-| GA (`energy_ga_order`) | Cell permutation. Tournament selection (3), ordered crossover (OX), inversion mutation, elitism (2). A child that duplicates a member of the new generation is mutated again (up to 10 times), which keeps the population diverse. | population 50, crossover 0.9, mutation 0.5 |
+| GA (`energy_ga_order`) | Cell permutation. Tournament selection (3), ordered crossover (OX), inversion mutation, elitism (2). A child that duplicates a member of the new generation is mutated again (up to 10 times), which keeps the population diverse. | population 50, crossover 0.9, mutation 0.3 |
 | PSO (`energy_pso_order`) | Random keys: a particle is a vector of n keys in [0, 1], and the cell order is `argsort(keys)`. Clerc–Kennedy constriction (inertia 0.7298, c₁ = c₂ = 1.49618), velocity clamped to ±0.5, ring topology (each particle follows the best of itself and its two neighbours). A particle whose own best has not improved for 20 moves is drawn again. | 60 particles |
 
-**Tuning.** Both methods were tuned with the same effort: a handful of settings each (population or swarm size, mutation rate, velocity limit, topology), scored on 10 small cases with known optima (six synthetic 7-cell tables and the four 7-cell test lawns) at 1000 and 2000 evaluations. The diversity rules (no duplicates in the GA, ring and restarts in the PSO) were the largest gains: without them both searches stall after a few hundred evaluations. Tune the Xie baseline with the same effort before final runs.
+**Tuning.** See [Tuning](#tuning): every method was tuned with the same protocol. The diversity rules (no duplicates in the GA, ring and restarts in the PSO) were added during development, because without them both searches stalled after a few hundred evaluations. That early work also used four of the 7-cell test lawns. The final settings come only from the separate tuning lawns.
 
 **Sanity checks** (`test/test_energy_order.py`). With 2000 evaluations (against 7! = 5040 for brute force), the GA finds the exact energy optimum on five synthetic 7-cell tables. The PSO stays within 1 % of the optimum on the same tables.
+
+## Tuning
+
+```bash
+ros2 run lawn_mower_planning run_tuning --out tuning.csv
+```
+
+`tuning.py` tunes every method with the same effort, as the fairness rules of issue #21 require:
+
+- **Lawns.** 10 tuning lawns (`random_lawn` seeds 100–109, 24 × 16 m, 1–2 obstacles, 6–7 cells). None of them is a shared test lawn, so tuning never sees the test data.
+- **Target.** Each method is scored against the exact optimum of its own objective, from brute force: energy for `energy_ga` and `energy_pso`, the centroid tour for `xie2024`, and length + turns for `xie_length_turns`.
+- **Effort.** 5 settings per method, the first being the default before tuning. Each setting runs at budgets 1000 and 2000 with seeds 0–2, so 60 runs per setting.
+- **Choice.** The setting with the most runs at the optimum wins. Ties go to the lower mean gap, then to the earlier setting, so a full tie keeps the default.
+
+Results (runs at the optimum, of 60):
+
+| Method | Settings tried (runs at the optimum) | Chosen |
+| --- | --- | --- |
+| `energy_ga` | pop 50 mut 0.5 (56), pop 100 mut 0.5 (48), pop 50 mut 0.3 (56), pop 100 mut 0.3 (50), pop 30 mut 0.5 (55) | pop 50, mutation 0.3 (lower mean gap than mutation 0.5) |
+| `energy_pso` | 60 particles v 0.5 (40), 40 v 0.5 (33), 20 v 0.5 (33), 60 v 0.2 (29), 60 v 1.0 (33) | 60 particles, max velocity 0.5 |
+| `xie2024` | All five settings: 60 | The paper's settings (pop 400, 100 ants, GA share 0.5), by the tie rule |
+| `xie_length_turns` | Paper (47), pop 100 ants 50 share 0.5 (51), pop 50 ants 25 (46), pop 100 ants 50 share 0.3 (53), share 0.7 (48) | pop 100, 50 ants, GA share 0.3 |
+
+The chosen settings are the defaults: in `EnergyGaParams` and `EnergyPsoParams`, in `XieGaAcoParams` (the paper's settings) for `xie2024`, and in `experiment.TUNED_LENGTH_TURNS` for the ablation.
+
+Notes for the paper:
+
+- The centroid tour of a 6–7-cell lawn is easy: every `xie2024` setting finds it in every run, so tuning cannot separate the settings, and the paper's settings stay.
+- The PSO is the weakest search on its own objective (40 of 60). Report `energy_ga` as the main form of our method, and the PSO as a variant.
+- Tuning ran at budgets of 1000 and 2000, below the 20000 of the experiments, so the searches are tuned for a tight budget.
 
 ## Xie et al. (2024) HGACO baseline
 
