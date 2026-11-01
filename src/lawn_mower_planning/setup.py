@@ -20,6 +20,7 @@ setup(
     entry_points={
         'console_scripts': [
             'run_experiments = lawn_mower_planning.experiment:main',
+            'run_tuning = lawn_mower_planning.tuning:main',
         ],
     },
 )
