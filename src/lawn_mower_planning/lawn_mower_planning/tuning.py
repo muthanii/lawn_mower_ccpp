@@ -128,7 +128,7 @@ def main(argv=None):
                       log=lambda s: print(s, file=sys.stderr))
     keys = sorted({k for r in rows for k in r}, key=lambda k: (k not in ('method', 'setting'), k))
     with open(args.out, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.DictWriter(f, keys)
+        writer = csv.DictWriter(f, keys, lineterminator='\n')
         writer.writeheader()
         writer.writerows(rows)
     for method, setting in best.items():

@@ -21,6 +21,7 @@ setup(
         'console_scripts': [
             'run_experiments = lawn_mower_planning.experiment:main',
             'run_tuning = lawn_mower_planning.tuning:main',
+            'analyze_results = lawn_mower_planning.analysis:main',
         ],
     },
 )

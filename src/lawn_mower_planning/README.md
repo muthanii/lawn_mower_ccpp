@@ -13,6 +13,7 @@ The coverage planner and its cell ordering. The pipeline splits the lawn into ce
 | `brute_force.py` | Exact orderings (plans and closed tours) by trying every permutation, for maps of up to 9 cells. Used for sanity checks. |
 | `maps.py` | The shared test lawns: 10 lawns with 7 to 15 cells each. |
 | `experiment.py` | The experiment runner: every method on every lawn and seed, one CSV row per run. |
+| `analysis.py` | Significance tests and the LaTeX result tables for the paper. |
 | `tuning.py` | The tuning protocol: the same tuning effort for every method, on separate tuning lawns. |
 | `energy_order.py` | Our method: GA or PSO that orders the cells by modelled energy. |
 | `operators.py`, `search.py` | Permutation operators, and the evaluation budget and result shared by the searches. |
@@ -133,7 +134,30 @@ Both searches minimise the modelled skid-steer energy of the whole plan: the cov
 
 **Sanity checks** (`test/test_energy_order.py`). With 2000 evaluations (against 7! = 5040 for brute force), the GA finds the exact energy optimum on five synthetic 7-cell tables. The PSO stays within 1 % of the optimum on the same tables.
 
-## Tuning
+## Analysis
+
+```bash
+ros2 run lawn_mower_planning analyze_results paper/data/ordering-pioneer3at.csv --tables paper/tables
+```
+
+`analyze_results` reads the experiment CSV, prints every test and writes two LaTeX tables, which `paper/sections/results.tex` includes:
+
+| File | Content |
+| --- | --- |
+| `paper/tables/ordering-energy.tex` | Energy per lawn and method (mean ± SD over the seeds), the difference of our GA to Xie et al. and its p-value per lawn, and the test across lawns. |
+| `paper/tables/ordering-metrics.tex` | Energy, length, turns, connection length, coverage and planning time: our GA against Xie et al. and against the length-and-turns ablation. |
+
+The tests:
+
+- **Pairing.** Runs are paired by lawn and seed. Each pair gives a relative difference, `100 (ours / theirs − 1)` [%].
+- **Per lawn.** A two-sided Wilcoxon signed-rank test over the seeds of the lawn, with Holm correction over the lawns. With 10 seeds the smallest possible p is 2/2¹⁰ ≈ 0.002, so 0.020 after Holm over 10 lawns.
+- **Across lawns.** A Wilcoxon test over the mean difference of each lawn. Seeds on one lawn are not independent, so the lawn is the unit; relative differences make large and small lawns weigh the same.
+- **Effect size.** The matched-pairs rank-biserial correlation r = (W⁺ − W⁻)/(W⁺ + W⁻): −1 when ours is lower in every pair.
+- **Ties.** Pairs with no difference are left out (Wilcoxon's method). A lawn where all pairs tie gets no test (shown as "--").
+- **Reference.** The exact optimum is deterministic, so it is reported but not tested.
+
+The analysis refuses a CSV that mixes robots. Analyse one robot at a time, and regenerate the tables after every run. The CSV behind the current tables is `paper/data/ordering-pioneer3at.csv`: the Pioneer 3-AT placeholder, so the tables are pipeline checks until the faculty robot runs replace them.
+
 
 ```bash
 ros2 run lawn_mower_planning run_tuning --out tuning.csv
