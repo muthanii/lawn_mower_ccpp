@@ -1,6 +1,6 @@
 # lawn_mower_planning
 
-The coverage planner and its cell ordering. The pipeline splits the lawn into cells (BCD), covers each cell with back-and-forth lanes and joins the cells with A* paths. An ordering method then decides the order in which the cells are visited. The package has the parts that every ordering method shares, and the Xie et al. (2024) baseline (issue #21).
+The coverage planner and its cell ordering. The pipeline splits the lawn into cells (BCD), covers each cell with back-and-forth lanes and joins the cells with A* paths. An ordering method then decides the order in which the cells are visited. The package has the parts that every ordering method shares, and the Xie et al. (2024) HGACO baseline (issue #21).
 
 | Module | Content |
 | --- | --- |
@@ -10,8 +10,8 @@ The coverage planner and its cell ordering. The pipeline splits the lawn into ce
 | `roadmap.py` | A* on the visibility graph of the free area: exact shortest paths among polygonal obstacles. |
 | `path_cost.py` | Length, turn count and energy of a polyline. Energy comes from the `lawn_mower_robot` skid-steer model. |
 | `transitions.py` | `TransitionTable`, the precomputed table that every ordering method reads. Also the exact variant decoder (`best_variants`) and `Plan`. |
-| `brute_force.py` | Exact ordering that tries every permutation, for maps of up to 9 cells. Used for sanity checks. |
-| `xie_ga_aco.py` | Re-implementation of the Xie et al. (2024) GA–ACO ordering, the main baseline. |
+| `brute_force.py` | Exact orderings (plans and closed tours) by trying every permutation, for maps of up to 9 cells. Used for sanity checks. |
+| `xie_ga_aco.py` | Re-implementation of the Xie et al. (2024) HGACO ordering, the main baseline, and a length-and-turns ablation. |
 
 ## Pipeline
 
@@ -51,58 +51,78 @@ A cell can be covered in `k` variants: the start corner and lane direction. The 
 | `transition[m]` | `(n, k, n, k)` | The A* path from the exit of `(i, a)` to the entry of `(j, b)`. |
 | `start[m]` | `(n, k)` | Driving from the robot start to the entry of `(c, a)`. `None` for a free start. |
 
-`inf` marks a variant that cannot be used. An ordering method sees only a weighted sum of the metrics, `table.combine({metric: weight})`. Xie et al.'s objective is `{'length': 1, 'turns': w_T}`. Our method's objective is `{'energy': 1}`. So both methods use the same cells, lanes and A* paths, and they differ only in the objective (an ablation).
+`inf` marks a variant that cannot be used. An ordering method on the table sees only a weighted sum of the metrics, `table.combine({metric: weight})`. Our method's objective is `{'energy': 1}`, and the length-and-turns ablation's is `{'length': 1, 'turns': w_T}`. Xie et al.'s own objective is the centroid tour, which uses the cell geometry instead of the table (see below). Every method uses the same cells, lanes and A* paths.
 
 For a fixed cell order, `best_variants` finds the best variant of each cell exactly, by dynamic programming over the order in O(n k²). So the metaheuristics search only over permutations. `Plan.metrics` sums every metric in the table along the chosen plan. This means a baseline run also reports energy from our model, although its objective does not use energy.
 
-## Xie et al. (2024) GA–ACO baseline
+## Xie et al. (2024) HGACO baseline
 
 > Xie, X., Yan, Z., Zhang, Z., Qin, Y., Jin, H., & Xu, M. (2024). Hybrid genetic ant colony optimization algorithm for full-coverage path planning of gardening pruning robots. *Intelligent Service Robotics*, 17, 661–683. https://doi.org/10.1007/s11370-024-00525-6
 
 ```python
-from lawn_mower_planning.xie_ga_aco import XieGaAcoParams, xie_ga_aco_order
+from lawn_mower_planning.xie_ga_aco import XieGaAcoParams, length_turns_order, xie2024_order
 
-result = xie_ga_aco_order(table, XieGaAcoParams(evaluations=5000, turn_weight=1.0), seed=0)
+result = xie2024_order(problem, XieGaAcoParams(evaluations=20000), seed=0)   # the baseline
 result.plan.order, result.plan.variants   # visiting order and variant of each cell
 result.row()                              # cost, length, turns, energy, seconds, evaluations, ...
+
+ablation = length_turns_order(problem.table, XieGaAcoParams(evaluations=20000), seed=0)
 ```
 
-The algorithm:
+### What Xie et al. do
 
-1. **Objective.** `J = length + w_T · turns`. `w_T` (`turn_weight`) is the cost of one turn, in metres of path.
-2. **GA stage.** The chromosome is a cell permutation, and it is decoded with `best_variants`. The GA uses tournament selection, ordered crossover (OX), inversion mutation and elitism.
-3. **Handover.** The `handover_elites` best GA orders lay the initial pheromone. An edge that is used by every elite starts near `tau_max`. All other edges start at `tau_min`.
-4. **ACO stage.** A max–min ant system. An ant picks the next cell with probability ∝ `tau^alpha · eta^beta`, where `eta = 1 / cheapest A* transition` to that cell. The pheromone evaporates, the global best order deposits `1/J`, and the pheromone stays in `[tau_min, tau_max]`, with `tau_max = 1/(rho J_best)` and `tau_min = tau_max / 2n`. The robot start is an extra pheromone row.
+The paper's objective is **not** length and turns. Xie et al. reduce the ordering to a closed travelling salesman tour over the sub-region centre points, with Euclidean distances (their Eqs. 1–3). Path length, turns, coverage and connection distance are only measured afterwards. `xie2024_order` follows the paper:
 
-**Compute budget.** Each decoded order counts as one evaluation, in both stages. `evaluations` is the total budget and `ga_share` splits it between the stages. To give our method the same budget, cap its decoded orders at the same number. Also log `seconds` for a wall-clock comparison.
+1. **Objective.** The length of a closed tour through the cell centroids.
+2. **GA** (their Sec. 3.2.1, Table 2). The chromosome is a cell permutation, and fitness is 1 / tour length. The GA uses population N = 400, PMX crossover with P_c = 0.5, and inversion mutation with P_m = 0.9.
+3. **Handover** (Sec. 3.2.3 (1)). The pheromone starts lower than in a plain ant colony everywhere, and higher on the edges of the GA's best tour.
+4. **ACO** (Secs. 3.2.2–3.2.3, Table 1). An ant system: every ant deposits Q / L_k (Eqs. 4–6), with m = 100 ants, Q = 100 and η = 1 / d_ij. α and β change over the iterations with a sigmoid (Eqs. 9–10, α = 8, β = 1, μ = 0.95), and ρ follows a Gaussian density (Eqs. 11–12).
+5. **Bridging** (Sec. 3.3). Each cell is entered at the corner nearest to the robot's current position. The lane parity fixes the exit corner. A* joins the cells.
 
-**Fallback.** `ga_share=1` gives the GA-only version that the issue describes, without the ACO layer. `ga_share=0` runs ACO alone, which is useful for an ablation of the hybrid.
+`Plan.cost` is the centroid tour length. `Plan.metrics` gives length, turns and energy of the plan on the shared pipeline.
+
+**Ablation.** `length_turns_order` runs the same HGACO on the shared `TransitionTable` and minimises `length + w_T · turns`, with the exact variant DP. This is the design in issue #21. It is not Xie et al.'s method, so report it as an ablation (Xie's search with a length-and-turns objective), if at all.
+
+**Compute budget.** Each evaluated order counts as one evaluation, in both stages. `evaluations` is the total budget and `ga_share` splits it between the stages. It replaces the paper's G_max = 1000 and 200–500 ACO iterations, so all methods get the same budget. The paper's settings (N = 400, m = 100) are the defaults. Log `seconds` for a wall-clock comparison.
+
+**Fallback.** `ga_share=1` runs only the GA. `ga_share=0` runs only the ant colony.
 
 **Why not DEAP.** DEAP draws from the global `random` module, so a run could not be reproduced from its own seed. Also, rosdep has no `python3-deap` key, so CI could not install it. The operators are short, so they are written here on a NumPy generator.
 
-**Sanity check.** `test/test_xie_ga_aco.py` compares the result with `brute_force_order` on ten synthetic 7-cell tables. With 1000 evaluations (a fifth of the 5040 orders) it finds the exact optimum on all ten. `test/test_pipeline.py` repeats the check on a 7-cell lawn built by the pipeline.
+**Sanity checks** (`test/test_xie_ga_aco.py`). With 4000 evaluations, `xie2024_order` finds the brute-force optimal tour on eight random 8-cell maps. The ablation stays within 1 % of the brute-force optimum on 7-cell tables, and on the pipeline's 7-cell lawn.
 
-### Interpretation, to check against the full text
+### What the paper leaves open, and our choice
 
-The full text was not available when this code was written. The authors were asked for it on 24 Oct 2026. The abstract says only that a hybrid genetic ant colony algorithm orders the sub-regions, that A* joins them, and that the algorithm uses "a new update strategy of heuristic and pheromone factors". Every item below is our choice. When the paper arrives, check each item, change the code or the defaults where they differ, and state any item that stays ambiguous in our paper.
+State these in our paper as interpretations.
 
-| Item | Our choice | Where |
+| Item | Paper | Our choice |
 | --- | --- | --- |
-| Chromosome | Cell permutation. The entry corner of each cell is set by the exact DP, not encoded in the chromosome. | `best_variants` |
-| Fitness | `length + w_T · turns`, with `w_T = 1` m per turn. The weight in the paper is unknown. | `XieGaAcoParams.turn_weight` |
-| GA operators | Tournament (3), OX (0.9), inversion mutation (0.2), 2 elites, population 50. | `XieGaAcoParams` |
-| GA → ACO handover | After a fixed share of the budget (0.5), the 10 best GA orders lay the pheromone. | `ga_share`, `handover_elites` |
-| ACO heuristic | `1 / cheapest A* transition`, kept static. Their "new heuristic update strategy" is not known. | `_heuristic` |
-| Pheromone update | Max–min ant system, global-best deposit, `rho = 0.1`, 20 ants, `alpha = 1`, `beta = 2`. Their "new pheromone update strategy" is not known. | `_ant_stage` |
-| Start and end | The plan starts at the robot start (if given) and ends in the last cell, with no return. | `TransitionTable.start` |
-| Turn count | One turn per vertex with a heading change of more than 1°, so a lane change counts 2. The paper may count a U-turn as 1. | `path_cost.py` |
+| Eqs. 9–10 | Printed as `α' = α / (1 − e^−x) + μβ` and `β' = β e^−x / (1 − e^−x)`. The text says sigmoid, and the printed form divides by zero at x = 0. | `α' = α·sigmoid(x) + μβ`, `β' = β·(1 − sigmoid(x))`. |
+| Sigmoid step x | "Determined based on iteration number". | x runs linearly from −6 to +6 over the ACO iterations (`sigmoid_span`). |
+| Eqs. 11–12 | `ρ(t) = N(t/10) + 0.2`. Mean y and σ are not given, and the exponent's sign is printed as positive. | y = 0, σ = 1, negative exponent. ρ falls from 0.60 to 0.2 within about 30 iterations. Table 1's ρ = 0.5 is then unused. |
+| Initial pheromone | "Lower than" a plain ant colony, "higher" on the GA's best tour. No values. | 0.5 everywhere, 2.0 on the GA tour (1.0 without a GA stage). |
+| GA selection | Fitness = 1 / length; the selection method is not named. | Roulette wheel on fitness, and the best tour is kept (elitism). |
+| Termination | G_max = 1000 GA generations; 200–500 ACO iterations, by map. | One shared budget of evaluated orders (fairness rule of issue #21). |
+| Where the tour opens | A closed tour; the paper does not say where the robot starts. | At the cell whose centroid is nearest the robot start, in the tour's direction. |
+| First cell's corner | Not stated. | The corner nearest the robot start. |
+
+### Differences in the shared pipeline
+
+These parts are shared by every method on purpose, so they are not re-implemented from the paper. Mention them when comparing with Xie et al.
+
+| Part | Xie et al. | Here |
+| --- | --- | --- |
+| Map | Occupancy grid. Irregular obstacles are expanded to bounding rectangles. | Polygons. |
+| Decomposition | Rectangles from extending obstacle edges, split when the aspect ratio exceeds 1:2. | Boustrophedon cells. |
+| A* | 8-connected grid, mixed diagonal and Manhattan heuristic. | Visibility graph, exact shortest paths. |
+| Turns | Reported, but no counting rule given. | One turn per vertex with a heading change of more than 1°. A lane change counts 2. |
 
 ### Fairness
 
-- Run both methods on the same maps, with the same seeds and the same `evaluations` budget, using one table per map.
+- Run all methods on the same maps, with the same seeds and the same `evaluations` budget, using one `CoverageProblem` per map.
 - Tune both methods with the same effort.
 - Report this as a re-implementation of Xie et al.'s ordering. Do not compare with the numbers in their paper, because they used different maps and a different robot.
-- Report their metrics (length and turns) next to energy, with coverage and overlap from `CoverageProblem.coverage`. Coverage depends only a little on the order (through the transitions).
+- Report their metrics (length, turns, coverage and connection distance) next to energy.
 
 ## Test
 

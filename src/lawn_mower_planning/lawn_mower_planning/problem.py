@@ -34,6 +34,7 @@ class CoverageProblem:
     routes: list         # routes[c][a]: sweep-frame waypoints covering cell c in variant a
     links: dict          # (i, a, j, b) or (None, None, j, b) for the start -> polyline or None
     table: TransitionTable
+    start: tuple = None  # sweep-frame robot start point, or None
 
     @property
     def _turn(self):
@@ -95,6 +96,7 @@ def build_problem(lawn, width, path_cost=PathCost(), clearance=None, lane_angle=
     cell = {m: np.zeros((n, k)) for m in metrics}
     trans = {m: np.full((n, k, n, k), np.inf) for m in metrics}
     begin = None
+    s = None
     links = {}
     entry = [[(r[0], heading(r[0], r[1])) for r in rs] for rs in routes]
     exit_ = [[(r[-1], heading(r[-2], r[-1])) for r in rs] for rs in routes]
@@ -131,4 +133,4 @@ def build_problem(lawn, width, path_cost=PathCost(), clearance=None, lane_angle=
                     for m, v in path_cost(link, theta + turn, h1).items():
                         begin[m][j, b] = v
     return CoverageProblem(lawn, width, lane_angle, free, cells, routes, links,
-                           TransitionTable(cell, trans, begin))
+                           TransitionTable(cell, trans, begin), s)

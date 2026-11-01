@@ -12,7 +12,7 @@ from lawn_mower_planning.lanes import cell_route, lane_segments
 from lawn_mower_planning.path_cost import PathCost
 from lawn_mower_planning.problem import build_problem
 from lawn_mower_planning.roadmap import Roadmap
-from lawn_mower_planning.xie_ga_aco import XieGaAcoParams, xie_ga_aco_order
+from lawn_mower_planning.xie_ga_aco import XieGaAcoParams, length_turns_order, xie2024_order
 
 DIAMOND = Polygon([(12, 2), (15, 5), (13, 8), (11, 5)])
 LAWN = box(0, 0, 20, 10).difference(box(5, 3, 8, 6)).difference(DIAMOND)
@@ -96,10 +96,20 @@ def test_table_and_path_agree(problem):
     assert stats['coverage'] > 90 and 0 <= stats['overlap'] < 20
 
 
-def test_ga_aco_matches_brute_force_on_the_pipeline(problem):
-    params = XieGaAcoParams(evaluations=1000)
-    assert xie_ga_aco_order(problem.table, params, seed=0).plan.cost == pytest.approx(
-        brute_force_order(problem.table, params.weights).cost)
+def test_xie2024_on_the_pipeline(problem):
+    result = xie2024_order(problem, XieGaAcoParams(evaluations=2000, population=50, ants=25))
+    assert sorted(result.plan.order) == list(range(7)) and result.plan.feasible
+    assert set(result.plan.metrics) == {'energy', 'length', 'turns'}
+    assert problem.path(result.plan)[0] == pytest.approx((1, 1))
+    # Its objective ignores energy, so it cannot beat the energy optimum.
+    assert result.plan.metrics['energy'] >= brute_force_order(problem.table,
+                                                              {'energy': 1}).metrics['energy']
+
+
+def test_length_turns_ablation_matches_brute_force_on_the_pipeline(problem):
+    params = XieGaAcoParams(evaluations=2000, population=50, ants=25)
+    best = brute_force_order(problem.table, {'length': 1, 'turns': params.turn_weight}).cost
+    assert length_turns_order(problem.table, params, seed=0).plan.cost <= 1.01 * best
 
 
 def test_lane_angle_follows_the_lawn():
