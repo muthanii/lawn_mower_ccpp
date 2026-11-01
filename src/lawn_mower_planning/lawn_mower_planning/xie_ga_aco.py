@@ -39,10 +39,12 @@ for CI. A local NumPy generator keeps every run reproducible from its seed.
 
 import math
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
+from .operators import inversion_mutation, pmx
+from .search import RunResult, Search
 from .transitions import Plan, best_variants, make_plan
 
 # Floor for step costs in the ACO heuristic, as a share of the median step,
@@ -102,24 +104,6 @@ class XieGaAcoParams:
 
 
 @dataclass(frozen=True)
-class RunResult:
-    plan: Plan               # every table metric along the plan, energy included
-    seconds: float           # wall-clock time of the search
-    evaluations: int         # evaluated orders, GA and ACO together
-    ga_evaluations: int
-    history: list = field(default_factory=list)  # (evaluation, best cost) at each improvement
-
-    def row(self):
-        """Flat record for the experiment log."""
-        out = {'cost': self.plan.cost, 'seconds': self.seconds,
-               'evaluations': self.evaluations, 'ga_evaluations': self.ga_evaluations,
-               'order': ' '.join(map(str, self.plan.order)),
-               'variants': ' '.join(map(str, self.plan.variants))}
-        out.update(self.plan.metrics)
-        return out
-
-
-@dataclass(frozen=True)
 class _Objective:
     """What HGACO searches: cost of an order and the ACO heuristic.
 
@@ -133,55 +117,12 @@ class _Objective:
     closed: bool
 
 
-class _Search:
-    """Counts evaluations and keeps the best order found."""
+class _Search(Search):
+    """Search on an _Objective, which also carries the ACO heuristic."""
 
     def __init__(self, objective, budget):
+        super().__init__(objective.cost, budget)
         self.objective = objective
-        self.budget = budget
-        self.used = 0
-        self.best_cost = np.inf
-        self.best_order = None
-        self.history = []
-
-    @property
-    def left(self):
-        return self.budget - self.used
-
-    def evaluate(self, order):
-        total = self.objective.cost(order)
-        self.used += 1
-        if total < self.best_cost or self.best_order is None:
-            self.best_cost, self.best_order = total, np.array(order)
-            self.history.append((self.used, total))
-        return total
-
-
-def pmx(p1, p2, i, j):
-    """Partially mapped crossover: the child keeps p1[i:j], the rest comes from p2."""
-    child = np.full(len(p1), -1)
-    child[i:j] = p1[i:j]
-    where = {int(v): k for k, v in enumerate(p2)}
-    kept = set(p1[i:j].tolist())
-    for k in range(i, j):
-        v = int(p2[k])
-        if v in kept:
-            continue
-        pos = k
-        while i <= pos < j:
-            pos = where[int(p1[pos])]
-        child[pos] = v
-    free = child < 0
-    child[free] = p2[free]
-    return child
-
-
-def inversion_mutation(order, rng):
-    """Reverse a random segment."""
-    i, j = sorted(rng.choice(len(order) + 1, size=2, replace=False))
-    out = order.copy()
-    out[i:j] = out[i:j][::-1]
-    return out
 
 
 def _roulette(costs, count, rng):

@@ -13,6 +13,8 @@ The coverage planner and its cell ordering. The pipeline splits the lawn into ce
 | `brute_force.py` | Exact orderings (plans and closed tours) by trying every permutation, for maps of up to 9 cells. Used for sanity checks. |
 | `maps.py` | The shared test lawns: 10 lawns with 7 to 15 cells each. |
 | `experiment.py` | The experiment runner: every method on every lawn and seed, one CSV row per run. |
+| `energy_order.py` | Our method: GA or PSO that orders the cells by modelled energy. |
+| `operators.py`, `search.py` | Permutation operators, and the evaluation budget and result shared by the searches. |
 | `xie_ga_aco.py` | Re-implementation of the Xie et al. (2024) HGACO ordering, the main baseline, and a length-and-turns ablation. |
 
 ## Pipeline
@@ -90,8 +92,9 @@ The runner builds each lawn once, with length, turns and energy from the robot c
 | `--maps` | all | Lawn names. |
 | `--methods` | all | Methods from `experiment.METHODS`. |
 | `--seeds` | 10 | Seeds 0 to N−1. |
-| `--budget` | 20000 | Evaluated orders per run. |
-| `--ga-share`, `--population`, `--ants` | 0.5, 400, 100 | HGACO settings. |
+| `--budget` | 20000 | Evaluated orders per run, the same for every method. |
+| `--ga-population`, `--pso-particles` | 50, 60 | Our GA and PSO. |
+| `--xie-population`, `--xie-ants`, `--xie-ga-share` | 400, 100, 0.5 | Xie et al.'s HGACO. |
 | `--width` | 0.5 | Cutting width and lane spacing [m]. |
 | `--out` | `results.csv` | CSV file. New rows are appended. |
 
@@ -99,13 +102,35 @@ Methods:
 
 | Method | What it is |
 | --- | --- |
+| `energy_ga` | Our method, with the GA. |
+| `energy_pso` | Our method, with the PSO. |
 | `xie2024` | The baseline: Xie et al.'s HGACO tour over cell centroids, with nearest-corner bridging. |
 | `xie_length_turns` | Ablation: the same HGACO, minimising length + turns on the shared table. |
 | `energy_optimal` | Reference: the exact energy-optimal plan by brute force. It runs once per lawn (it does not depend on the seed), and only on lawns with up to 8 cells. |
 
-To add our method, register a function `(problem, params, seed) -> RunResult` in `experiment.METHODS`.
+To add a method, register a function `(problem, settings, seed) -> RunResult` in `experiment.METHODS`. `settings.budgeted(params)` gives the method its parameters with the shared budget.
 
 CSV columns: `map`, `cells`, `method`, `seed`, `budget`, `robot`, `width`, `cost` (the method's own objective), `length` [m], `turns`, `energy` [J], `energy_wh`, `connection_length` (path outside the cells: start link and A* transitions [m]), `coverage` [%], `overlap` [%], `seconds`, `evaluations`, `ga_evaluations`, `order`, `variants`.
+
+## Our method: energy-ordered cells
+
+```python
+from lawn_mower_planning.energy_order import EnergyGaParams, EnergyPsoParams, energy_ga_order, energy_pso_order
+
+result = energy_ga_order(problem.table, EnergyGaParams(evaluations=20000), seed=0)
+result = energy_pso_order(problem.table, EnergyPsoParams(evaluations=20000), seed=0)
+```
+
+Both searches minimise the modelled skid-steer energy of the whole plan: the coverage inside each cell, the A* transitions, the start link and every turn (`{'energy': 1}` on the shared table). Each cell order is decoded with the exact variant DP, so every order is scored with its best start corners. Each decode counts as one evaluation, against the same budget as the baseline. Set `weights` to minimise another mix of table metrics.
+
+| Search | Encoding and operators | Defaults |
+| --- | --- | --- |
+| GA (`energy_ga_order`) | Cell permutation. Tournament selection (3), ordered crossover (OX), inversion mutation, elitism (2). A child that duplicates a member of the new generation is mutated again (up to 10 times), which keeps the population diverse. | population 50, crossover 0.9, mutation 0.5 |
+| PSO (`energy_pso_order`) | Random keys: a particle is a vector of n keys in [0, 1], and the cell order is `argsort(keys)`. Clerc–Kennedy constriction (inertia 0.7298, c₁ = c₂ = 1.49618), velocity clamped to ±0.5, ring topology (each particle follows the best of itself and its two neighbours). A particle whose own best has not improved for 20 moves is drawn again. | 60 particles |
+
+**Tuning.** Both methods were tuned with the same effort: a handful of settings each (population or swarm size, mutation rate, velocity limit, topology), scored on 10 small cases with known optima (six synthetic 7-cell tables and the four 7-cell test lawns) at 1000 and 2000 evaluations. The diversity rules (no duplicates in the GA, ring and restarts in the PSO) were the largest gains: without them both searches stall after a few hundred evaluations. Tune the Xie baseline with the same effort before final runs.
+
+**Sanity checks** (`test/test_energy_order.py`). With 2000 evaluations (against 7! = 5040 for brute force), the GA finds the exact energy optimum on five synthetic 7-cell tables. The PSO stays within 1 % of the optimum on the same tables.
 
 ## Xie et al. (2024) HGACO baseline
 

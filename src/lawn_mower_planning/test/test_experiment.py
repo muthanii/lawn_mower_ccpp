@@ -2,13 +2,16 @@ import csv
 
 import pytest
 
-from lawn_mower_planning.experiment import COLUMNS, connection_length, main, run, summarize
+from lawn_mower_planning.energy_order import EnergyGaParams, EnergyPsoParams
+from lawn_mower_planning.experiment import COLUMNS, Settings, connection_length, main, run, \
+    summarize
 from lawn_mower_planning.maps import lawn_by_name
 from lawn_mower_planning.path_cost import PathCost
 from lawn_mower_planning.problem import build_problem
 from lawn_mower_planning.xie_ga_aco import XieGaAcoParams
 
-PARAMS = XieGaAcoParams(evaluations=300, population=30, ants=15)
+PARAMS = Settings(300, XieGaAcoParams(population=30, ants=15), EnergyGaParams(population=20),
+                  EnergyPsoParams(particles=20))
 
 
 def test_run_writes_one_row_per_run(tmp_path):
@@ -33,12 +36,16 @@ def test_run_writes_one_row_per_run(tmp_path):
 def test_energy_optimal_is_the_least_energy(tmp_path):
     from lawn_mower_robot.robot_config import load_robot_config, resolve_robot_config
     cost = PathCost.from_config(load_robot_config(resolve_robot_config('pioneer3at')))
-    rows = run([lawn_by_name('two_beds')], ['xie2024', 'energy_optimal'], [0, 1], PARAMS, cost,
-               'pioneer3at', 0.5, log=lambda s: None)
+    methods = ['energy_ga', 'energy_pso', 'xie2024', 'energy_optimal']
+    rows = run([lawn_by_name('two_beds')], methods, [0, 1], PARAMS, cost, 'pioneer3at', 0.5,
+               log=lambda s: None)
     # energy_optimal is deterministic, so it runs once, not once per seed.
-    assert [r['method'] for r in rows] == ['xie2024', 'xie2024', 'energy_optimal']
+    assert [r['method'] for r in rows] == ['energy_ga'] * 2 + ['energy_pso'] * 2 \
+        + ['xie2024'] * 2 + ['energy_optimal']
     best = rows[-1]
-    assert all(best['energy'] <= r['energy'] for r in rows)
+    assert all(best['energy'] <= r['energy'] + 1e-6 for r in rows)
+    assert all(r['budget'] == 300 for r in rows)
+    assert all(r['evaluations'] == 300 for r in rows[:-1])
     assert best['energy_wh'] == pytest.approx(best['energy'] / 3600)
 
 
@@ -60,7 +67,7 @@ def test_summary_has_one_line_per_map_and_method():
 def test_command_line(tmp_path, capsys):
     out = tmp_path / 'cli.csv'
     main(['--maps', 'two_beds', '--methods', 'xie2024', '--seeds', '2', '--budget', '200',
-          '--population', '20', '--ants', '10', '--out', str(out)])
+          '--xie-population', '20', '--xie-ants', '10', '--out', str(out)])
     assert 'two_beds\txie2024\t2' in capsys.readouterr().out
     with open(out, encoding='utf-8') as f:
         assert len(list(csv.DictReader(f))) == 2
