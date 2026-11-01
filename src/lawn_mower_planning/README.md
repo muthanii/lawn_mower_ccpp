@@ -11,6 +11,8 @@ The coverage planner and its cell ordering. The pipeline splits the lawn into ce
 | `path_cost.py` | Length, turn count and energy of a polyline. Energy comes from the `lawn_mower_robot` skid-steer model. |
 | `transitions.py` | `TransitionTable`, the precomputed table that every ordering method reads. Also the exact variant decoder (`best_variants`) and `Plan`. |
 | `brute_force.py` | Exact orderings (plans and closed tours) by trying every permutation, for maps of up to 9 cells. Used for sanity checks. |
+| `maps.py` | The shared test lawns: 10 lawns with 7 to 15 cells each. |
+| `experiment.py` | The experiment runner: every method on every lawn and seed, one CSV row per run. |
 | `xie_ga_aco.py` | Re-implementation of the Xie et al. (2024) HGACO ordering, the main baseline, and a length-and-turns ablation. |
 
 ## Pipeline
@@ -54,6 +56,56 @@ A cell can be covered in `k` variants: the start corner and lane direction. The 
 `inf` marks a variant that cannot be used. An ordering method on the table sees only a weighted sum of the metrics, `table.combine({metric: weight})`. Our method's objective is `{'energy': 1}`, and the length-and-turns ablation's is `{'length': 1, 'turns': w_T}`. Xie et al.'s own objective is the centroid tour, which uses the cell geometry instead of the table (see below). Every method uses the same cells, lanes and A* paths.
 
 For a fixed cell order, `best_variants` finds the best variant of each cell exactly, by dynamic programming over the order in O(n k²). So the metaheuristics search only over permutations. `Plan.metrics` sums every metric in the table along the chosen plan. This means a baseline run also reports energy from our model, although its objective does not use energy.
+
+## Test lawns
+
+`maps.shared_lawns()` returns the lawns that every method runs on. The lawns are polygons in metres with obstacle holes, and each has a robot start pose. With the default 0.5 m cutting width each lawn gives 6 to 15 cells (`test/test_maps.py` checks this).
+
+| Lawn | Cells | Area (m²) | Content |
+| --- | --- | --- | --- |
+| `two_beds` | 7 | 216 | Small rectangle, two flower beds. |
+| `backyard` | 7 | 396 | Shed in a corner, a bed and a tree. |
+| `l_shape` | 7 | 452 | L-shaped lawn, two beds. |
+| `three_beds` | 10 | 400 | Rectangle, three staggered beds. |
+| `garden` | 10 | 689 | Irregular boundary, a tree, a triangular bed and a pond. |
+| `park_trees` | 13 | 975 | Large rectangle, four round trees. |
+| `sports_edge` | 13 | 1273 | Large rectangle, beds and a tree spread out. |
+| `random_1` | 10 | 551 | 4 random obstacles (seed 1). |
+| `random_2` | 15 | 542 | 5 random obstacles (seed 2). |
+| `random_3` | 7 | 591 | 2 random obstacles (seed 3). |
+
+Round obstacles are octagons. `random_lawn(seed)` places seeded random beds and trees at least 2 m apart, and draws again until the lawn has 6 to 15 cells. The same seed always gives the same lawn.
+
+## Experiments
+
+```bash
+ros2 run lawn_mower_planning run_experiments --robot pioneer3at --seeds 10 --budget 20000 --out results.csv
+```
+
+The runner builds each lawn once, with length, turns and energy from the robot config. Every method then plans on that same problem, with seeds 0 to N−1 and the same evaluation budget. It writes one CSV row per run as each run finishes, so a stopped run keeps its rows. Then it prints the mean ± standard deviation per lawn and method.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--robot` | `pioneer3at` | Robot config name or path. |
+| `--maps` | all | Lawn names. |
+| `--methods` | all | Methods from `experiment.METHODS`. |
+| `--seeds` | 10 | Seeds 0 to N−1. |
+| `--budget` | 20000 | Evaluated orders per run. |
+| `--ga-share`, `--population`, `--ants` | 0.5, 400, 100 | HGACO settings. |
+| `--width` | 0.5 | Cutting width and lane spacing [m]. |
+| `--out` | `results.csv` | CSV file. New rows are appended. |
+
+Methods:
+
+| Method | What it is |
+| --- | --- |
+| `xie2024` | The baseline: Xie et al.'s HGACO tour over cell centroids, with nearest-corner bridging. |
+| `xie_length_turns` | Ablation: the same HGACO, minimising length + turns on the shared table. |
+| `energy_optimal` | Reference: the exact energy-optimal plan by brute force. It runs once per lawn (it does not depend on the seed), and only on lawns with up to 8 cells. |
+
+To add our method, register a function `(problem, params, seed) -> RunResult` in `experiment.METHODS`.
+
+CSV columns: `map`, `cells`, `method`, `seed`, `budget`, `robot`, `width`, `cost` (the method's own objective), `length` [m], `turns`, `energy` [J], `energy_wh`, `connection_length` (path outside the cells: start link and A* transitions [m]), `coverage` [%], `overlap` [%], `seconds`, `evaluations`, `ga_evaluations`, `order`, `variants`.
 
 ## Xie et al. (2024) HGACO baseline
 

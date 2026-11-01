@@ -17,4 +17,9 @@ setup(
     description='Coverage pipeline (BCD, lanes, A*) and cell ordering, with the Xie et al. (2024) GA-ACO baseline.',
     license='MIT',
     extras_require={'test': ['pytest']},
+    entry_points={
+        'console_scripts': [
+            'run_experiments = lawn_mower_planning.experiment:main',
+        ],
+    },
 )
