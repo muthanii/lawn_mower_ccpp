@@ -128,7 +128,7 @@ def run(lawns, methods, seeds, settings, path_cost, robot, width, out=None, log=
     if out is not None:
         new = not os.path.exists(out) or os.path.getsize(out) == 0
         f = open(out, 'a', newline='', encoding='utf-8')
-        writer = csv.DictWriter(f, COLUMNS, extrasaction='ignore')
+        writer = csv.DictWriter(f, COLUMNS, extrasaction='ignore', lineterminator='\n')
         if new:
             writer.writeheader()
     try:
