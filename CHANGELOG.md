@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.9.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.8.0...v1.9.0) (2026-11-01)
+
+
+### Features
+
+* **planning:** add significance tests and the paper's result tables ([#27](https://github.com/muthanii/lawn_mower_ccpp/issues/27)) ([7c31d28](https://github.com/muthanii/lawn_mower_ccpp/commit/7c31d285830bbe670f62a32a176cb7695c32ffeb))
+* **planning:** add the coverage pipeline, energy-ordered cells and the Xie et al. (2024) baseline ([#25](https://github.com/muthanii/lawn_mower_ccpp/issues/25)) ([04c5f6e](https://github.com/muthanii/lawn_mower_ccpp/commit/04c5f6e4bf3ab89294a39e0dc1470bd94623b959))
+
 ## [1.8.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.7.0...v1.8.0) (2026-10-29)
 
 
