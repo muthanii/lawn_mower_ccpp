@@ -260,10 +260,12 @@ def nearest_corner_plan(problem, tour):
     The tour is opened at the cell nearest to the robot start (or at its first
     cell without a start). Each cell is then entered in the variant whose
     entry corner is nearest to where the robot is; the lane parity fixes the
-    exit corner.
+    exit corner. With several sweep angles, each cell first takes its own
+    fewest-turns angle (CoverageProblem.fewest_turns_angle), since Xie et al.
+    do not search over sweep directions.
     """
     tour = [int(c) for c in tour]
-    entry = [[r[0] for r in routes] for routes in problem.routes]
+    entry = [[r and r[0] for r in routes] for routes in problem.routes]
     centre = [c.centroid.coords[0] for c in problem.cells]
     if problem.start is not None:
         first = min(tour, key=lambda c: math.dist(centre[c], problem.start))
@@ -271,8 +273,9 @@ def nearest_corner_plan(problem, tour):
         tour = tour[k:] + tour[:k]
     here, variants = problem.start, []
     for c in tour:
-        a = 0 if here is None else min(range(len(entry[c])),
-                                       key=lambda v: math.dist(entry[c][v], here))
+        candidates = problem.fewest_turns_angle(c)
+        a = candidates[0] if here is None else min(candidates,
+                                                   key=lambda v: math.dist(entry[c][v], here))
         variants.append(a)
         here = problem.routes[c][a][-1]
     return tour, variants

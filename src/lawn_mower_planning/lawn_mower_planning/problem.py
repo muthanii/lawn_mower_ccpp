@@ -35,6 +35,24 @@ class CoverageProblem:
     links: dict          # (i, a, j, b) or (None, None, j, b) for the start -> polyline or None
     table: TransitionTable
     start: tuple = None  # sweep-frame robot start point, or None
+    sweep_angles: tuple = (0.0,)  # lane angles [rad] from the BCD sweep direction, see lanes.py
+
+    def variant_angle(self, a):
+        """Sweep angle [rad] of variant a (relative to lane_angle)."""
+        return self.sweep_angles[a // len(VARIANTS)]
+
+    def fewest_turns_angle(self, c):
+        """Variants of cell c at its own best sweep angle: fewest turns, then shortest.
+
+        This is the classic per-cell choice made before ordering (the minimum
+        width direction). Methods that do not search over angles, such as
+        Xie et al.'s, use it.
+        """
+        k = len(VARIANTS)
+        turns, length = self.table.cell['turns'][c], self.table.cell['length'][c]
+        best = min(range(len(self.sweep_angles)),
+                   key=lambda g: (turns[g * k:(g + 1) * k].min(), length[g * k:(g + 1) * k].min()))
+        return [best * k + v for v in range(k) if self.routes[c][best * k + v] is not None]
 
     @property
     def _turn(self):
@@ -70,7 +88,7 @@ class CoverageProblem:
 
 
 def build_problem(lawn, width, path_cost=PathCost(), clearance=None, lane_angle=RIGHT_ANGLE,
-                  start=None):
+                  start=None, sweep_angles=(0.0,)):
     """Decompose and precompute everything an ordering method needs.
 
     lawn       world-frame Polygon; obstacles are holes
@@ -80,7 +98,15 @@ def build_problem(lawn, width, path_cost=PathCost(), clearance=None, lane_angle=
                default width / 2
     lane_angle world heading of the lanes [rad]; default along y
     start      robot start pose (x, y, heading) in the world frame, or None
+    sweep_angles lane angles [rad] that each cell may use, counterclockwise from
+               lane_angle; the default (0,) gives every cell the same lanes.
+               Variant a is angle a // 4 and start corner a % 4. A cell that is
+               not monotone across an angle's lanes gets inf for that angle.
     """
+    sweep_angles = tuple(float(a) for a in sweep_angles)
+    if not sweep_angles or 0.0 not in sweep_angles:
+        raise ValueError(f'sweep_angles {sweep_angles} must include 0, the BCD direction, '
+                         'where every cell is monotone')
     clearance = width / 2 if clearance is None else clearance
     turn = RIGHT_ANGLE - lane_angle
     sweep = affinity.rotate(lawn, turn, origin=(0, 0), use_radians=True)
@@ -88,29 +114,30 @@ def build_problem(lawn, width, path_cost=PathCost(), clearance=None, lane_angle=
     if not polygons(free):
         raise ValueError('nothing left of the lawn after the clearance')
     cells = boustrophedon_cells(free)
-    routes = [cell_routes(c, width) for c in cells]
+    routes = [cell_routes(c, width, sweep_angles) for c in cells]
     roadmap = Roadmap(free)
-    n, k = len(cells), len(VARIANTS)
+    n, k = len(cells), len(VARIANTS) * len(sweep_angles)
     metrics = path_cost.metrics
 
-    cell = {m: np.zeros((n, k)) for m in metrics}
+    cell = {m: np.full((n, k), np.inf) for m in metrics}
     trans = {m: np.full((n, k, n, k), np.inf) for m in metrics}
     begin = None
     s = None
     links = {}
-    entry = [[(r[0], heading(r[0], r[1])) for r in rs] for rs in routes]
-    exit_ = [[(r[-1], heading(r[-2], r[-1])) for r in rs] for rs in routes]
+    entry = [[r and (r[0], heading(r[0], r[1])) for r in rs] for rs in routes]
+    exit_ = [[r and (r[-1], heading(r[-2], r[-1])) for r in rs] for rs in routes]
+    usable = [[a for a in range(k) if routes[c][a] is not None] for c in range(n)]
     for c in range(n):
-        for a in range(k):
+        for a in usable[c]:
             for m, v in path_cost(routes[c][a]).items():
                 cell[m][c, a] = v
     for i in range(n):
-        for a in range(k):
+        for a in usable[i]:
             p, h0 = exit_[i][a]
             for j in range(n):
                 if j == i:
                     continue
-                for b in range(k):
+                for b in usable[j]:
                     q, h1 = entry[j][b]
                     link = roadmap.path(p, q)
                     links[(i, a, j, b)] = link
@@ -125,7 +152,7 @@ def build_problem(lawn, width, path_cost=PathCost(), clearance=None, lane_angle=
                              f'(lawn minus a {clearance} m clearance)')
         begin = {m: np.full((n, k), np.inf) for m in metrics}
         for j in range(n):
-            for b in range(k):
+            for b in usable[j]:
                 q, h1 = entry[j][b]
                 link = roadmap.path(s, q)
                 links[(None, None, j, b)] = link
@@ -133,4 +160,4 @@ def build_problem(lawn, width, path_cost=PathCost(), clearance=None, lane_angle=
                     for m, v in path_cost(link, theta + turn, h1).items():
                         begin[m][j, b] = v
     return CoverageProblem(lawn, width, lane_angle, free, cells, routes, links,
-                           TransitionTable(cell, trans, begin), s)
+                           TransitionTable(cell, trans, begin), s, sweep_angles)

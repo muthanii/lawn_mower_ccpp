@@ -1,6 +1,7 @@
 """Back-and-forth lanes in one BCD cell, in the four start-corner variants.
 
-Lanes are vertical (along the sweep line). A cell w wide gets ceil(w / width)
+Lanes are vertical (along the sweep line) by default. cell_routes can also
+turn them by a set of sweep angles, so each cell can pick its own direction. A cell w wide gets ceil(w / width)
 lanes, spread evenly so that the outer lanes are at most width / 2 from the
 cell sides. The robot turns from one lane to the next along a straight line,
 or along the cell boundary where the straight line would leave the cell.
@@ -8,6 +9,7 @@ or along the cell boundary where the straight line would leave the cell.
 
 import math
 
+from shapely import affinity
 from shapely.geometry import LineString
 
 from .decomposition import MIN_CONTACT
@@ -63,5 +65,43 @@ def cell_route(cell, width, variant):
     return points
 
 
-def cell_routes(cell, width):
-    return [cell_route(cell, width, v) for v in range(len(VARIANTS))]
+def monotone(cell):
+    """True when every vertical line meets the cell in at most one segment.
+
+    The topology of a vertical cut only changes at a vertex x, so checking one
+    line between each pair of neighbouring vertex x values is exact.
+    """
+    xs = sorted({x for x, _ in cell.exterior.coords})
+    _, ymin, _, ymax = cell.bounds
+    for x0, x1 in zip(xs, xs[1:]):
+        if x1 - x0 <= MIN_CONTACT:
+            continue
+        x = (x0 + x1) / 2
+        cut = cell.intersection(LineString([(x, ymin - 1), (x, ymax + 1)]))
+        if len([g for g in getattr(cut, 'geoms', [cut]) if g.length > MIN_CONTACT]) > 1:
+            return False
+    return True
+
+
+def cell_routes(cell, width, angles=(0.0,)):
+    """Routes for every variant: len(angles) sweep angles times the 4 start corners.
+
+    Variant a uses angle angles[a // 4] [rad] and start corner a % 4. The angle
+    turns the lanes counterclockwise from vertical (the BCD sweep direction).
+    A cell that is not monotone across the turned lanes cannot be swept
+    back and forth in one piece, so its routes for that angle are None.
+    """
+    routes = []
+    for angle in angles:
+        if angle == 0:
+            routes.extend(cell_route(cell, width, v) for v in range(len(VARIANTS)))
+            continue
+        turned = affinity.rotate(cell, -angle, origin=(0, 0), use_radians=True)
+        if not monotone(turned):
+            routes.extend([None] * len(VARIANTS))
+            continue
+        for v in range(len(VARIANTS)):
+            line = affinity.rotate(LineString(cell_route(turned, width, v)), angle, origin=(0, 0),
+                                   use_radians=True)
+            routes.append(list(line.coords))
+    return routes

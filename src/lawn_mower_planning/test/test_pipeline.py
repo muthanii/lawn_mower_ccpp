@@ -8,7 +8,7 @@ from shapely.geometry import LineString, Polygon, box
 
 from lawn_mower_planning.brute_force import brute_force_order
 from lawn_mower_planning.decomposition import boustrophedon_cells
-from lawn_mower_planning.lanes import cell_route, lane_segments
+from lawn_mower_planning.lanes import cell_route, cell_routes, lane_segments, monotone
 from lawn_mower_planning.path_cost import PathCost
 from lawn_mower_planning.problem import build_problem
 from lawn_mower_planning.roadmap import Roadmap
@@ -124,3 +124,69 @@ def test_lane_angle_follows_the_lawn():
 def test_rejects_a_start_in_the_clearance():
     with pytest.raises(ValueError, match='outside the free area'):
         build_problem(LAWN, 0.5, start=(0, 0, 0))
+
+
+U_CELL = Polygon([(0, 0), (3, 0), (3, 3), (2, 3), (2, 1), (1, 1), (1, 3), (0, 3)])
+
+
+def test_turned_lanes_cover_the_cell_and_stay_inside():
+    flat = box(0, 0, 5, 1)
+    routes = cell_routes(flat, 0.5, (0.0, math.pi / 2, math.pi / 4))
+    assert len(routes) == 12
+    for route in routes:
+        assert flat.buffer(1e-6).covers(LineString(route))
+    cost = PathCost()
+    vertical, horizontal = cost(routes[0]), cost(routes[4])
+    assert vertical['turns'] == 18      # 10 lanes across the 5 m side
+    assert horizontal['turns'] == 2     # 2 lanes along it
+    assert LineString(routes[4][:2]).length == pytest.approx(5)  # first lane runs along x
+
+
+def test_angles_where_the_cell_is_not_monotone_are_unusable():
+    assert monotone(U_CELL)
+    assert not monotone(affinity.rotate(U_CELL, -math.pi / 2, origin=(0, 0), use_radians=True))
+    routes = cell_routes(U_CELL, 0.5, (0.0, math.pi / 2))
+    assert all(r is not None for r in routes[:4])
+    assert routes[4:] == [None] * 4
+
+
+@pytest.fixture(scope='module')
+def angled(pioneer_cost):
+    return build_problem(LAWN, 0.5, pioneer_cost, start=(1, 1, 0),
+                         sweep_angles=(0.0, math.pi / 4, math.pi / 2, 3 * math.pi / 4))
+
+
+def test_sweep_angles_widen_the_variants(problem, angled):
+    assert (angled.table.n_cells, angled.table.n_variants) == (7, 16)
+    for m in problem.table.metrics:  # angle 0 is the same as the fixed lanes
+        np.testing.assert_allclose(angled.table.cell[m][:, :4], problem.table.cell[m])
+        np.testing.assert_allclose(angled.table.transition[m][:, :4, :, :4],
+                                   problem.table.transition[m])
+    fixed = brute_force_order(problem.table, {'energy': 1})
+    free = brute_force_order(angled.table, {'energy': 1})
+    assert free.cost <= fixed.cost
+    assert any(angled.variant_angle(a) != 0 for a in free.variants), 'some cell turns its lanes'
+
+
+def test_angled_table_and_path_agree(angled):
+    plan = brute_force_order(angled.table, {'length': 1, 'turns': 1})
+    path = angled.path(plan)
+    assert path[0] == pytest.approx((1, 1))
+    assert LineString(path).length == pytest.approx(plan.metrics['length'])
+    assert PathCost()(path, start_heading=0.0)['turns'] == plan.metrics['turns']
+    assert LAWN.buffer(-0.25 + 1e-6).covers(LineString(path))
+    assert angled.coverage(plan)['coverage'] > 90
+
+
+def test_xie2024_takes_each_cells_fewest_turns_angle(angled):
+    result = xie2024_order(angled, XieGaAcoParams(evaluations=2000, population=50, ants=25))
+    assert sorted(result.plan.order) == list(range(7)) and result.plan.feasible
+    for c, a in zip(result.plan.order, result.plan.variants):
+        assert a in angled.fewest_turns_angle(c)
+        turns = angled.table.cell['turns'][c].reshape(4, 4)  # (angle, corner)
+        assert turns[a // 4].min() == turns.min()
+
+
+def test_rejects_sweep_angles_without_the_bcd_direction():
+    with pytest.raises(ValueError, match='must include 0'):
+        build_problem(LAWN, 0.5, sweep_angles=(math.pi / 2,))

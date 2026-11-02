@@ -24,6 +24,9 @@ class Cells:
         self.start = start
         self.table = lawn_table(len(centres), seed=0)
 
+    def fewest_turns_angle(self, c):
+        return list(range(len(self.routes[c])))  # one sweep angle, all four corners
+
 
 def test_paper_parameters_are_the_defaults():
     p = XieGaAcoParams()
