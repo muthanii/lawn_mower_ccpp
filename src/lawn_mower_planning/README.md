@@ -35,7 +35,7 @@ problem.table          # TransitionTable with length, turns and energy
 
 1. **Free area.** The lawn shrinks by `clearance` (default `width / 2`), so that the robot centre stays that far from the edges and obstacles.
 2. **Cells.** BCD with a sweep line along the lanes. `lane_angle` sets the lane heading in the world frame (default: along y). The geometry is computed in a frame where the lanes are vertical, and `path` turns it back.
-3. **Lanes.** A cell `w` wide gets `ceil(w / width)` lanes, spread evenly. The robot changes lane along a straight line, or along the cell boundary where the straight line would leave the cell. The 4 variants are the start corners.
+3. **Lanes.** A cell `w` wide gets `ceil(w / width)` lanes, spread evenly. The robot changes lane along a straight line, or along the cell boundary where the straight line would leave the cell. Each cell can sweep at any angle in `sweep_angles` (radians, counterclockwise from the BCD direction; default `(0,)`, which gives every cell the same vertical lanes). The variants are the sweep angles times the 4 start corners: variant `a` is angle `a // 4` and corner `a % 4`. A cell that a turned lane would cross more than once cannot be swept back and forth in one piece, so that angle gets `inf` for that cell. Angle 0 is always usable, because BCD cells are monotone along the sweep line.
 4. **Transitions.** A* on the visibility graph, from the exit of each `(cell, variant)` to the entry of every other one, and from the robot start.
 5. **Metrics.** The robot drives each straight from rest and turns in place at each vertex. One vertex with a heading change of more than 1° is one turn, so a lane change counts 2. The same rule applies inside cells, on transitions and at the junctions between them, including the turn into and out of each lane. So the turn count of a plan equals the turn count of its assembled path (tested). Energy is the sum of `SkidSteerEnergyModel.straight` and `.turn` over the segments and turns, at the robot's maximum linear and angular speed.
 
@@ -49,7 +49,7 @@ Known simplifications, to state in the paper:
 
 ## Transition table
 
-A cell can be covered in `k` variants: the start corner and lane direction. The variant fixes where the robot enters and leaves the cell. For each metric (`length`, `turns`, `energy`, ...) the table holds:
+A cell can be covered in `k` variants: the sweep angle, the start corner and the lane direction. The variant fixes where the robot enters and leaves the cell. For each metric (`length`, `turns`, `energy`, ...) the table holds:
 
 | Array | Shape | Cost of |
 | --- | --- | --- |
@@ -59,7 +59,7 @@ A cell can be covered in `k` variants: the start corner and lane direction. The 
 
 `inf` marks a variant that cannot be used. An ordering method on the table sees only a weighted sum of the metrics, `table.combine({metric: weight})`. Our method's objective is `{'energy': 1}`, and the length-and-turns ablation's is `{'length': 1, 'turns': w_T}`. Xie et al.'s own objective is the centroid tour, which uses the cell geometry instead of the table (see below). Every method uses the same cells, lanes and A* paths.
 
-For a fixed cell order, `best_variants` finds the best variant of each cell exactly, by dynamic programming over the order in O(n k²). So the metaheuristics search only over permutations. `Plan.metrics` sums every metric in the table along the chosen plan. This means a baseline run also reports energy from our model, although its objective does not use energy.
+For a fixed cell order, `best_variants` finds the best variant of each cell exactly, by dynamic programming over the order in O(n k²). So the metaheuristics search only over permutations, and every method that reads the table also picks each cell's sweep angle exactly for its order. `Plan.metrics` sums every metric in the table along the chosen plan. This means a baseline run also reports energy from our model, although its objective does not use energy.
 
 ## Test lawns
 
@@ -98,6 +98,7 @@ The runner builds each lawn once, with length, turns and energy from the robot c
 | `--ga-population`, `--pso-particles` | 50, 60 | Our GA and PSO. |
 | `--xie-population`, `--xie-ants`, `--xie-ga-share` | 400, 100, 0.5 | Xie et al.'s HGACO. |
 | `--width` | 0.5 | Cutting width and lane spacing [m]. |
+| `--sweep-angles` | 0 45 90 135 | Lane angles each cell may use [deg from the BCD direction]. Must include 0. `--sweep-angles 0` gives the fixed vertical lanes of v1.9.0. The analysis refuses a CSV that mixes angle sets. |
 | `--out` | `results.csv` | CSV file. New rows are appended. |
 
 Methods:
@@ -112,7 +113,7 @@ Methods:
 
 To add a method, register a function `(problem, settings, seed) -> RunResult` in `experiment.METHODS`. `settings.budgeted(params)` gives the method its parameters with the shared budget.
 
-CSV columns: `map`, `cells`, `method`, `seed`, `budget`, `robot`, `width`, `cost` (the method's own objective), `length` [m], `turns`, `energy` [J], `energy_wh`, `connection_length` (path outside the cells: start link and A* transitions [m]), `coverage` [%], `overlap` [%], `seconds`, `evaluations`, `ga_evaluations`, `order`, `variants`.
+CSV columns: `map`, `cells`, `method`, `seed`, `budget`, `robot`, `width`, `sweep_angles` (degrees, space-separated), `cost` (the method's own objective), `length` [m], `turns`, `energy` [J], `energy_wh`, `connection_length` (path outside the cells: start link and A* transitions [m]), `coverage` [%], `overlap` [%], `seconds`, `evaluations`, `ga_evaluations`, `order`, `variants`.
 
 ## Our method: energy-ordered cells
 
@@ -209,7 +210,7 @@ The paper's objective is **not** length and turns. Xie et al. reduce the orderin
 2. **GA** (their Sec. 3.2.1, Table 2). The chromosome is a cell permutation, and fitness is 1 / tour length. The GA uses population N = 400, PMX crossover with P_c = 0.5, and inversion mutation with P_m = 0.9.
 3. **Handover** (Sec. 3.2.3 (1)). The pheromone starts lower than in a plain ant colony everywhere, and higher on the edges of the GA's best tour.
 4. **ACO** (Secs. 3.2.2–3.2.3, Table 1). An ant system: every ant deposits Q / L_k (Eqs. 4–6), with m = 100 ants, Q = 100 and η = 1 / d_ij. α and β change over the iterations with a sigmoid (Eqs. 9–10, α = 8, β = 1, μ = 0.95), and ρ follows a Gaussian density (Eqs. 11–12).
-5. **Bridging** (Sec. 3.3). Each cell is entered at the corner nearest to the robot's current position. The lane parity fixes the exit corner. A* joins the cells.
+5. **Bridging** (Sec. 3.3). Each cell is entered at the corner nearest to the robot's current position. The lane parity fixes the exit corner. A* joins the cells. With several sweep angles, each cell first takes its own fewest-turns angle (ties broken by length, `CoverageProblem.fewest_turns_angle`), and the nearest corner is chosen among that angle's corners.
 
 `Plan.cost` is the centroid tour length. `Plan.metrics` gives length, turns and energy of the plan on the shared pipeline.
 
@@ -237,6 +238,7 @@ State these in our paper as interpretations.
 | Termination | G_max = 1000 GA generations; 200–500 ACO iterations, by map. | One shared budget of evaluated orders (fairness rule of issue #21). |
 | Where the tour opens | A closed tour; the paper does not say where the robot starts. | At the cell whose centroid is nearest the robot start, in the tour's direction. |
 | First cell's corner | Not stated. | The corner nearest the robot start. |
+| Sweep direction | One direction per sub-region, from the rectangular decomposition. Not searched. | Each cell's fewest-turns angle from the shared `sweep_angles`, chosen before ordering. |
 
 ### Differences in the shared pipeline
 

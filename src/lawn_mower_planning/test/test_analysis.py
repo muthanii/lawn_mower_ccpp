@@ -81,3 +81,17 @@ def test_command_line(tmp_path, capsys):
         csv.DictWriter(f, FIELDS).writerows(fake_rows('faculty_robot')[:1])
     with pytest.raises(SystemExit):
         analysis.main([str(path)])
+
+
+def test_command_line_refuses_mixed_sweep_angles(tmp_path):
+    path = tmp_path / 'results.csv'
+    fields = FIELDS + ['sweep_angles']
+    rows = fake_rows()
+    for i, row in enumerate(rows):
+        row['sweep_angles'] = '0' if i else '0 45 90 135'
+    with open(path, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fields)
+        writer.writeheader()
+        writer.writerows(rows)
+    with pytest.raises(SystemExit):
+        analysis.main([str(path)])

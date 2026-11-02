@@ -17,6 +17,7 @@ methods in METHODS.
 
 import argparse
 import csv
+import math
 import os
 import statistics
 import sys
@@ -32,6 +33,11 @@ from .search import RunResult
 from .xie_ga_aco import XieGaAcoParams, length_turns_order, xie2024_order
 
 BRUTE_FORCE_CELLS = 8  # energy_optimal runs only up to 8! = 40320 orders
+# Lane angles each cell may use [deg from the BCD sweep direction]. Every
+# method gets the same set: the table-based methods search over it, and
+# xie2024 takes each cell's fewest-turns angle. --sweep-angles 0 gives the
+# fixed vertical lanes of v1.9.0.
+SWEEP_ANGLES_DEG = (0.0, 45.0, 90.0, 135.0)
 
 
 # Tuned with tuning.py (see the package README); the paper's settings tied for xie2024.
@@ -93,7 +99,8 @@ METHODS = {
 }
 DETERMINISTIC = {'energy_optimal'}  # run once per lawn, not once per seed
 
-COLUMNS = ['map', 'cells', 'method', 'seed', 'budget', 'robot', 'width', 'cost', 'length',
+COLUMNS = ['map', 'cells', 'method', 'seed', 'budget', 'robot', 'width', 'sweep_angles',
+           'cost', 'length',
            'turns', 'energy', 'energy_wh', 'connection_length', 'coverage', 'overlap',
            'seconds', 'evaluations', 'ga_evaluations', 'order', 'variants']
 
@@ -114,6 +121,7 @@ def run_row(lawn, problem, method, seed, settings, robot, width):
     row.update(problem.coverage(plan))
     row.update(map=lawn.name, cells=problem.table.n_cells, method=method, seed=seed,
                budget=settings.budget, robot=robot, width=width,
+               sweep_angles=' '.join(f'{math.degrees(a):g}' for a in problem.sweep_angles),
                connection_length=connection_length(problem, plan))
     if 'energy' in plan.metrics:
         from lawn_mower_robot.energy import JOULES_PER_WH
@@ -121,8 +129,10 @@ def run_row(lawn, problem, method, seed, settings, robot, width):
     return row
 
 
-def run(lawns, methods, seeds, settings, path_cost, robot, width, out=None, log=print):
+def run(lawns, methods, seeds, settings, path_cost, robot, width, out=None, log=print,
+        sweep_angles_deg=(0.0,)):
     """Run every method on every lawn with every seed. Returns the rows."""
+    angles = tuple(math.radians(a) for a in sweep_angles_deg)
     rows = []
     writer = None
     if out is not None:
@@ -133,8 +143,9 @@ def run(lawns, methods, seeds, settings, path_cost, robot, width, out=None, log=
             writer.writeheader()
     try:
         for lawn in lawns:
-            problem = build_problem(lawn.area, width, path_cost, start=lawn.start)
-            log(f'{lawn.name}: {problem.table.n_cells} cells')
+            problem = build_problem(lawn.area, width, path_cost, start=lawn.start,
+                                    sweep_angles=angles)
+            log(f'{lawn.name}: {problem.table.n_cells} cells, {problem.table.n_variants} variants')
             for method in methods:
                 for seed in (seeds[:1] if method in DETERMINISTIC else seeds):
                     row = run_row(lawn, problem, method, seed, settings, robot, width)
@@ -189,6 +200,9 @@ def main(argv=None):
     parser.add_argument('--xie-ga-share', type=float, default=XieGaAcoParams.ga_share,
                         help='xie2024 share of the budget for its GA stage')
     parser.add_argument('--width', type=float, default=DEFAULT_WIDTH, help='cutting width [m]')
+    parser.add_argument('--sweep-angles', type=float, nargs='+', default=list(SWEEP_ANGLES_DEG),
+                        help='lane angles each cell may use [deg from the BCD direction], '
+                             'must include 0; 0 alone gives fixed vertical lanes')
     parser.add_argument('--out', default='results.csv', help='CSV file (rows are appended)')
     args = parser.parse_args(argv)
 
@@ -206,7 +220,8 @@ def main(argv=None):
                         EnergyGaParams(population=args.ga_population),
                         EnergyPsoParams(particles=args.pso_particles))
     rows = run(lawns, args.methods, list(range(args.seeds)), settings, PathCost.from_config(cfg),
-               cfg.name, args.width, args.out, log=lambda s: print(s, file=sys.stderr))
+               cfg.name, args.width, args.out, log=lambda s: print(s, file=sys.stderr),
+               sweep_angles_deg=tuple(args.sweep_angles))
     print(summarize(rows))
     print(f'{len(rows)} runs written to {args.out}', file=sys.stderr)
 

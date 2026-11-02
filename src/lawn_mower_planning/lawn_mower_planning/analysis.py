@@ -286,6 +286,10 @@ def main(argv=None):
     robots = sorted({r['robot'] for r in rows})
     if len(robots) > 1:
         parser.error(f'{args.results} mixes robots {robots}; analyse one robot at a time')
+    # CSVs from before the sweep_angles column have fixed vertical lanes ('0').
+    angles = sorted({r.get('sweep_angles') or '0' for r in rows})
+    if len(angles) > 1:
+        parser.error(f'{args.results} mixes sweep angle sets {angles}; analyse one at a time')
     print(report(rows))
     if args.tables:
         os.makedirs(args.tables, exist_ok=True)
