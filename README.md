@@ -100,7 +100,7 @@ All robot parameters live in one config file, `src/lawn_mower_robot/config/robot
 
 ## Paper
 
-The journal paper is in `paper/`. It uses the Elsevier `elsarticle` class with numbered references. The target journal is *Biomimetic Intelligence and Robotics*.
+The journal paper is in `paper/`. It uses the Elsevier CAS single-column class (`cas-sc`), as linked in the journal's guide for authors, with numbered references. The target journal is *Biomimetic Intelligence and Robotics*.
 
 | Path | Content |
 | --- | --- |
