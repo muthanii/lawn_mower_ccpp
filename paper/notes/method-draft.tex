@@ -1,0 +1,122 @@
+% REFERENCE DRAFT, NOT PART OF THE PAPER. main.tex does not include this file.
+% Written by a Claude session (PR #28, 2 Nov 2026) and moved here so that the
+% section in sections/method.tex is written by the author. Use it like a
+% reference book: check facts, equations and structure, then write in your own words.
+% Out of date since PR #29: cells now have sweep angles x 4 corners as variants,
+% not 4 corners only.
+
+\section{Method}
+\label{sec:method}
+
+% DRAFT. Citation keys follow the Better BibTeX default (author + short title + year).
+% Add these references in Zotero and check that the keys match:
+%   chosetCoveragePathPlanning2000      Choset (2000), boustrophedon cell decomposition
+%   lozano-perezAlgorithmPlanningCollisionfree1979  Lozano-Perez and Wesley (1979), visibility graph
+%   hartFormalBasisHeuristic1968        Hart, Nilsson and Raphael (1968), A*
+%   davisApplyingAdaptiveAlgorithms1985 Davis (1985), order crossover
+%   beanGeneticAlgorithmsRandom1994     Bean (1994), random keys
+%   clercParticleSwarmExplosion2002     Clerc and Kennedy (2002), constriction coefficients
+%   kennedyParticleSwarmOptimization1995  Kennedy and Eberhart (1995), PSO
+
+The planner splits the lawn into cells, covers each cell with back-and-forth lanes and joins the cells with collision-free transitions.
+These three steps are shared by every method in this paper.
+The methods differ only in the order in which they visit the cells and in the corner at which they enter each cell.
+Our method chooses this order to minimise the modelled energy of the complete path (Section~\ref{sec:robot-energy-model}).
+
+\subsection{Free area and cell decomposition}
+\label{sec:method-decomposition}
+
+The lawn is a polygon $\mathcal{L}$ whose holes are the obstacles.
+The centre of the robot keeps a clearance $c$ from every edge, so the planner works in the free area $\mathcal{F} = \mathcal{L} \ominus B(c)$, the lawn eroded by a disc of radius $c$.
+We set $c = w/2$, where $w$ is the cutting width.
+
+The free area is split by the boustrophedon cell decomposition (BCD) \cite{chosetCoveragePathPlanning2000}.
+A sweep line parallel to the lane direction $\theta$ moves across $\mathcal{F}$.
+A new cell starts wherever the number of free segments on the sweep line changes, that is, where an obstacle begins or ends.
+Every line parallel to $\theta$ therefore meets each cell in at most one segment.
+The result is a set of $n$ cells $\{C_1, \dots, C_n\}$.
+
+\subsection{Coverage of a cell}
+\label{sec:method-lanes}
+
+Each cell is covered by lanes parallel to $\theta$.
+A cell of width $b$ across the lanes receives $m = \lceil b / w \rceil$ lanes, spaced $b/m \le w$ apart, so the outer lanes lie at most $w/2$ from the cell sides.
+The robot drives the lanes in alternating directions.
+Between two lanes it follows a straight segment, or the cell boundary where the straight segment would leave the cell.
+
+A cell can be covered from any of its four corners.
+We call the choice of start corner the \emph{variant} $a \in \{1,\dots,4\}$ of the cell.
+The variant fixes where the robot enters the cell and, through the parity of $m$, where it leaves it.
+
+\subsection{Transitions between cells}
+\label{sec:method-transitions}
+
+The robot moves between cells on shortest collision-free paths in $\mathcal{F}$.
+These paths are found by A* \cite{hartFormalBasisHeuristic1968} on the visibility graph of $\mathcal{F}$ \cite{lozano-perezAlgorithmPlanningCollisionfree1979}, whose nodes are the vertices of $\mathcal{F}$.
+Among polygonal obstacles the shortest path bends only at these vertices, so A* with the straight-line heuristic returns the exact shortest path.
+A path is computed from the exit of every cell and variant to the entry of every other cell and variant, and from the robot start to the entry of every cell and variant.
+
+\subsection{Path cost}
+\label{sec:method-cost}
+
+Every part of the plan is a polyline: the lanes of a cell, a transition, or the link from the robot start.
+The robot drives each straight segment and turns in place at each vertex.
+Let a polyline have segments of lengths $\ell_1, \dots, \ell_p$ and heading changes $\varphi_1, \dots, \varphi_q$ at its vertices, including the turn from the previous heading and the turn into the next lane.
+Its length is $\sum_i \ell_i$.
+Its turn count is the number of heading changes larger than $1^\circ$, so a change between two lanes counts as two turns.
+Its energy is
+\begin{equation}
+E = \sum_{i=1}^{p} E_{\mathrm{s}}(\ell_i) + \sum_{j=1}^{q} E_{\mathrm{r}}(\varphi_j),
+\label{eq:path-energy}
+\end{equation}
+where $E_{\mathrm{s}}(\ell)$ is the battery energy of a straight drive of length $\ell$ from rest and $E_{\mathrm{r}}(\varphi)$ that of an in-place turn by $\varphi$, both from the skid-steer model of Section~\ref{sec:robot-energy-model}.
+The same rule counts turns and energy inside cells, on transitions and at the junctions between them.
+The turn count and length of a plan therefore equal those of its assembled path.
+
+\subsection{Transition table and plan cost}
+\label{sec:method-table}
+
+All costs are computed once per lawn and stored in a transition table.
+For a metric $\mu$ (energy, length or turns) the table holds the cost $\mu^{\mathrm{cell}}_{i,a}$ of covering cell $i$ in variant $a$, the cost $\mu^{\mathrm{tr}}_{i,a,j,b}$ of the transition from the exit of $(i,a)$ to the entry of $(j,b)$, and the cost $\mu^{\mathrm{start}}_{j,b}$ of the link from the robot start.
+A plan is an order $\pi = (\pi_1, \dots, \pi_n)$ of the cells and a variant $a_k$ for each cell.
+Its cost is
+\begin{equation}
+J(\pi, a) = \mu^{\mathrm{start}}_{\pi_1,a_1} + \sum_{k=1}^{n} \mu^{\mathrm{cell}}_{\pi_k,a_k} + \sum_{k=1}^{n-1} \mu^{\mathrm{tr}}_{\pi_k,a_k,\pi_{k+1},a_{k+1}} .
+\label{eq:plan-cost}
+\end{equation}
+
+For a fixed order $\pi$ the best variants follow exactly from dynamic programming along the order.
+Let $V_k(b)$ be the least cost of the first $k$ cells with cell $\pi_k$ in variant $b$.
+Then $V_1(b) = \mu^{\mathrm{start}}_{\pi_1,b} + \mu^{\mathrm{cell}}_{\pi_1,b}$ and
+\begin{equation}
+V_{k+1}(b) = \min_{a} \left( V_k(a) + \mu^{\mathrm{tr}}_{\pi_k,a,\pi_{k+1},b} \right) + \mu^{\mathrm{cell}}_{\pi_{k+1},b},
+\label{eq:variant-dp}
+\end{equation}
+and the cost of the order is $\min_b V_n(b)$.
+This takes $O(n K^2)$ operations for $K = 4$ variants.
+The search methods therefore only search over orders, and every order they evaluate is scored with its best variants.
+
+\subsection{Energy-aware cell ordering}
+\label{sec:method-ordering}
+
+Our method minimises Eq.~\eqref{eq:plan-cost} with $\mu$ equal to the modelled energy of Eq.~\eqref{eq:path-energy}.
+This is a sequencing problem over $n!$ orders, so we search it with a genetic algorithm (GA) and, as a variant, with particle swarm optimisation (PSO).
+Both decode each candidate order with Eq.~\eqref{eq:variant-dp}, and each decode counts as one evaluation of the objective.
+
+\paragraph{Genetic algorithm}
+A chromosome is a permutation of the cells.
+Parents are chosen by tournament selection of size 3.
+Children are formed by order crossover (OX) \cite{davisApplyingAdaptiveAlgorithms1985} with probability 0.9 and mutated by reversing a random segment with probability 0.3.
+The two best orders pass unchanged to the next generation.
+A child that equals an order already in the new generation is mutated again, up to ten times.
+This rule keeps the population diverse: without it the GA stopped improving after a few hundred evaluations in preliminary runs.
+The population has 50 orders.
+
+\paragraph{Particle swarm optimisation}
+A particle is a vector of $n$ keys in $[0,1]$, and its order is the permutation that sorts the keys (random-key encoding \cite{beanGeneticAlgorithmsRandom1994}).
+Velocities follow the constriction form of Clerc and Kennedy \cite{clercParticleSwarmExplosion2002} with inertia 0.7298 and acceleration coefficients 1.49618, and are limited to $\pm 0.5$ per key.
+Each particle follows the best of itself and its two neighbours on a ring.
+A particle whose own best has not improved for 20 moves is drawn again at random.
+The swarm has 60 particles.
+
+The parameter values above result from the tuning protocol of Section~\ref{sec:setup-tuning}.
