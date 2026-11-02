@@ -1,40 +1,55 @@
 % Journal paper for Biomimetic Intelligence and Robotics (Elsevier/KeAi).
+% Uses Elsevier's CAS single-column class, as linked in the journal's guide for authors.
 % Build from the repository root: latexmk -pdf paper/main.tex
-\documentclass[preprint,12pt]{elsarticle}
+\documentclass[a4paper,fleqn]{cas-sc}
 
-\usepackage{amsmath,amssymb}
-\usepackage{graphicx}
-\usepackage{booktabs}
+% cas-sc already loads amsmath, amssymb, graphicx, booktabs and hyperref.
+% It wants the STIX and Charis fonts (texlive-fonts-extra). Without them it falls
+% back to Computer Modern in bitmap form, so use Times, Helvetica and Courier.
+\IfFileExists{stix.sty}{}{%
+  \usepackage{mathptmx}
+  \usepackage[scaled=.92]{helvet}
+  \usepackage{courier}}
 \usepackage{siunitx}
-\usepackage{hyperref}
+\usepackage[numbers]{natbib}
 
 % Plotting scripts write their figures to paper/figures/
 \graphicspath{{figures/}}
 
-\journal{Biomimetic Intelligence and Robotics}
-
 \begin{document}
+\let\WriteBookmarks\relax
+\def\floatpagepagefraction{1}
+\def\textpagefraction{.001}
 
-\begin{frontmatter}
+\shorttitle{Intelligent Complete Coverage Path Planning for an Autonomous Lawn Mower Robot}
+\shortauthors{M. Alsaadi and A.I. Majeed}
 
-\title{Intelligent Complete Coverage Path Planning for an Autonomous Lawn Mower Robot Using Soft Computing Techniques}
+\title[mode=title]{Intelligent Complete Coverage Path Planning for an Autonomous Lawn Mower Robot Using Soft Computing Techniques}
 
-\author[aff1]{Author Name\corref{cor1}}
-\ead{author@example.com}
-\cortext[cor1]{Corresponding author.}
-\affiliation[aff1]{organization={Department},
-            city={City},
-            country={Country}}
+% CAS takes the last word of a name as the surname, so write given names first.
+\author[1]{M. Alsaadi}[orcid=0009-0006-1538-4117]
+\cormark[1]
+\ead{muthana.ali.ie25@nahrainuniv.edu.iq}
+
+\author[1]{A.I. Majeed}[orcid=0000-0002-0411-3024]
+
+\affiliation[1]{organization={Nahrain University, College of Information Engineering, Department of AI and Automation},
+            city={Baghdad},
+            country={Iraq}}
+
+\cortext[1]{Corresponding author}
 
 \input{sections/abstract}
 
-\begin{keyword}
+\begin{keywords}
 complete coverage path planning \sep lawn mower robot \sep
 boustrophedon decomposition \sep genetic algorithm \sep
 particle swarm optimization \sep fuzzy logic control \sep energy efficiency
-\end{keyword}
+\end{keywords}
 
-\end{frontmatter}
+\maketitle
+% \maketitle fills the PDF author field with garbled characters; replace it.
+\hypersetup{pdfauthor={M. Alsaadi, A.I. Majeed}}
 
 \input{sections/introduction}
 \input{sections/related-work}
