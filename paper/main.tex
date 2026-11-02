@@ -1,33 +1,92 @@
 % Journal paper for Biomimetic Intelligence and Robotics (Elsevier/KeAi).
+% Uses Elsevier's CAS single-column class, as linked in the journal's guide for authors.
 % Build from the repository root: latexmk -pdf paper/main.tex
-% Elsevier CAS single-column class (texlive-publishers). It already loads
-% amsmath, amssymb, graphicx, booktabs and hyperref.
 \documentclass[a4paper,fleqn]{cas-sc}
 
-\usepackage[numbers]{natbib}
+% cas-sc already loads amsmath, amssymb, graphicx, booktabs and hyperref.
+% It wants the STIX and Charis fonts (texlive-fonts-extra). Without them it falls
+% back to Computer Modern in bitmap form, so use Times, Helvetica and Courier.
+\IfFileExists{stix.sty}{}{%
+  \usepackage{mathptmx}
+  \usepackage[scaled=.92]{helvet}
+  \usepackage{courier}}
 \usepackage{siunitx}
+\usepackage[numbers]{natbib}
 
 % Plotting scripts write their figures to paper/figures/
 \graphicspath{{figures/}}
 
-\begin{document}
+% CAS's abstract takes an optional title it never uses; looking ahead for it reads
+% the abstract's first command before the verbatim copy starts, and that command is
+% lost (here the first \textbf). Drop the optional argument.
+\RenewDocumentEnvironment{abstract}{}{\verbatimwrite{\jobname.abs}}{\endverbatimwrite}
 
+% CAS sets the keywords box beside the abstract, then backs up by the box's height
+% without reserving it. When the abstract is shorter than the keyword list, the
+% keywords run into the first section. Pad the abstract to the keywords' height.
+\makeatletter
+\newdimen\paper@keyht
+\newsavebox\paper@absbox
+\AddToHook{env/Abstract/begin}{%
+  \global\paper@keyht=\dimexpr\ht\csname g_stm_key_box\endcsname
+                             +\dp\csname g_stm_key_box\endcsname\relax
+  \global\sbox\paper@absbox{\vbox{\hsize=.65\textwidth \parindent\z@
+    \noindent\abstractname\par\vskip-4pt
+    \noindent\rule{.65\textwidth}{.2pt}\par
+    \footnotesize\everypar{\parindent1.5em}\noindent\ignorespaces
+    \IfFileExists{\jobname.abs}{\input{\jobname.abs}}{}\par}}}
+\AddToHook{env/Abstract/end}{%
+  \par
+  \ifdim\dimexpr\ht\paper@absbox+\dp\paper@absbox\relax<\paper@keyht
+    \vskip\dimexpr\paper@keyht-\ht\paper@absbox-\dp\paper@absbox\relax
+  \fi}
+\makeatother
+
+% CAS writes the page count for its "Page x of y" footer before pending floats are
+% flushed, so trailing table or figure pages are missed. Take it from lastpage.
+\usepackage{lastpage}
+\AtBeginDocument{\def\lastpage{\pageref*{LastPage}}}
+
+% CAS sets the corresponding-author, email and ORCID notes as footnotes on the title
+% page. Whenever a float is met, LaTeX's output routine puts the page back and
+% re-inserts pending footnotes after it, at the float's position. If the page then
+% breaks above that position, the title-page notes move to the next page. Re-insert
+% them before the page instead, so they stay where they were set. \unvcopy keeps
+% \footins full for the kernel's room check; the later \@reinserts skip it.
+\usepackage{etoolbox}
+\makeatletter
+\def\paper@reinsertsnofn{\global\setbox\footins\box\voidb@x \@reinserts}
+\patchcmd\@specialoutput{\unvbox \@holdpg \@next}
+  {\ifvoid\footins\else\insert\footins{\unvcopy\footins}\fi \unvbox \@holdpg \@next}{}
+  {\PackageWarningNoLine{main}{Could not keep the title-page notes on page 1}}
+\patchcmd\@specialoutput{\@reinserts \@addtocurcol}{\paper@reinsertsnofn \@addtocurcol}{}
+  {\PackageWarningNoLine{main}{Could not keep the title-page notes on page 1}}
+\patchcmd\@specialoutput{\@reinserts \@addmarginpar}{\paper@reinsertsnofn \@addmarginpar}{}
+  {\PackageWarningNoLine{main}{Could not keep the title-page notes on page 1}}
+\makeatother
+
+\begin{document}
 \let\WriteBookmarks\relax
 \def\floatpagepagefraction{1}
 \def\textpagefraction{.001}
 
-\shorttitle{Coverage path planning for a lawn mower robot}
-\shortauthors{Author Name}
+\shorttitle{Intelligent Complete Coverage Path Planning for an Autonomous Lawn Mower Robot}
+\shortauthors{M. Alsaadi and A.I. Majeed}
 
-\title[mode = title]{Intelligent Complete Coverage Path Planning for an Autonomous Lawn Mower Robot Using Soft Computing Techniques}
+\title[mode=title]{Intelligent Complete Coverage Path Planning for an Autonomous Lawn Mower Robot Using Soft Computing Techniques}
 
-\author[1]{Author Name}[orcid=0000-0000-0000-0000]
+% CAS takes the last word of a name as the surname, so write given names first.
+\author[1]{M. Alsaadi}[orcid=0009-0006-1538-4117]
 \cormark[1]
-\ead{author@example.com}
-\affiliation[1]{organization={Department},
-            city={City},
-            country={Country}}
-\cortext[1]{Corresponding author.}
+\ead{muthana.ali.ie25@nahrainuniv.edu.iq}
+
+\author[1]{A.I. Majeed}[orcid=0000-0002-0411-3024]
+
+\affiliation[1]{organization={Nahrain University, College of Information Engineering, Department of AI and Automation},
+            city={Baghdad},
+            country={Iraq}}
+
+\cortext[1]{Corresponding author}
 
 \input{sections/abstract}
 
@@ -38,6 +97,8 @@ particle swarm optimization \sep fuzzy logic control \sep energy efficiency
 \end{keywords}
 
 \maketitle
+% \maketitle fills the PDF author field with garbled characters; replace it.
+\hypersetup{pdfauthor={M. Alsaadi, A.I. Majeed}}
 
 \input{sections/introduction}
 \input{sections/related-work}
