@@ -1,4 +1,158 @@
 \section{Experimental setup}
 \label{sec:experimental-setup}
 
-% TODO
+% DRAFT. Citation keys follow the Better BibTeX default (author + short title + year).
+% Add these references in Zotero and check that the keys match:
+%   xieHybridGeneticAnt2024             Xie et al. (2024), the HGACO baseline
+%   yuDynamicModelingSkidsteered2009    Yu et al. (2009), Pioneer 3-AT terrain values
+%   goldbergAllelesLociTraveling1985    Goldberg and Lingle (1985), PMX
+%   wilcoxonIndividualComparisonsRanking1945  Wilcoxon (1945), signed-rank test
+%   holmSimpleSequentiallyRejective1979 Holm (1979), multiple-test correction
+%   kerbySimpleDifferenceFormula2014    Kerby (2014), rank-biserial correlation
+%
+% TODO before submission: replace the placeholder robot (Section robot) with the
+% faculty robot, regenerate the tables, and fill in the hardware used for timing.
+
+All methods plan on the same lawns, with the same cells, lanes, transitions and energy model (Section~\ref{sec:method}).
+They differ only in how they order the cells and choose the variants.
+Each method receives the same compute budget and the same random seeds.
+
+\subsection{Robot model}
+\label{sec:setup-robot}
+
+% TODO: faculty robot. The values below are the Pioneer 3-AT placeholder.
+The energy model uses the parameters of a Pioneer 3-AT skid-steer robot: mass 12.0~kg, track width 0.394~m and wheelbase 0.268~m.
+The rolling resistance coefficient (0.0371) and the lateral friction coefficient (0.4437) are those identified by Yu et al.\ for this robot \cite{yuDynamicModelingSkidsteered2009}.
+The robot drives straight segments at its maximum linear speed of 0.7~m/s and turns in place at its maximum yaw rate of $140^\circ$/s.
+The drivetrain efficiency is set to 0.6 and the auxiliary power to zero.
+The cutting width, and therefore the lane spacing, is $w = 0.5$~m.
+
+\subsection{Test lawns}
+\label{sec:setup-lawns}
+
+The methods are compared on ten lawns (Table~\ref{tab:lawns}).
+Seven are drawn by hand to cover common garden layouts: rectangles with flower beds, a shed in a corner, an L-shaped lawn, an irregular boundary with a pond, and lawns with round trees.
+Three are generated with random rectangular beds and round trees, placed at least 2~m apart, from fixed seeds.
+Round obstacles are octagons.
+With the cutting width above, the lawns decompose into 7 to 15 cells.
+Each lawn has a fixed robot start pose inside the free area.
+
+\begin{table}[t]
+\centering
+\caption{Test lawns. Cells: number of BCD cells at a cutting width of 0.5~m.}
+\label{tab:lawns}
+\small
+\begin{tabular}{l r r p{0.45\linewidth}}
+\toprule
+Lawn & Cells & Area (m$^2$) & Content \\
+\midrule
+\texttt{two\_beds} & 7 & 216 & Small rectangle, two flower beds \\
+\texttt{backyard} & 7 & 396 & Shed in a corner, a bed and a tree \\
+\texttt{l\_shape} & 7 & 452 & L-shaped lawn, two beds \\
+\texttt{three\_beds} & 10 & 400 & Rectangle, three staggered beds \\
+\texttt{garden} & 10 & 689 & Irregular boundary, tree, triangular bed, pond \\
+\texttt{park\_trees} & 13 & 975 & Large rectangle, four round trees \\
+\texttt{sports\_edge} & 13 & 1273 & Large rectangle, beds and a tree \\
+\texttt{random\_1} & 10 & 551 & Four random obstacles \\
+\texttt{random\_2} & 15 & 542 & Five random obstacles \\
+\texttt{random\_3} & 7 & 591 & Two random obstacles \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Compared methods}
+\label{sec:setup-methods}
+
+\paragraph{Ours}
+The energy-aware GA and PSO of Section~\ref{sec:method-ordering}.
+The GA is the main form of our method; the PSO is reported as a variant.
+
+\paragraph{Xie et al.}
+We re-implemented the hybrid genetic ant colony optimisation (HGACO) of Xie et al.\ \cite{xieHybridGeneticAnt2024}, the closest published method to ours.
+Xie et al.\ order the sub-regions as a closed travelling salesman tour over their centre points with Euclidean distances, and measure path length, turns and coverage only after planning.
+A GA with partially mapped crossover \cite{goldbergAllelesLociTraveling1985} and inversion mutation searches first; its best tour then raises the initial pheromone of an ant system, whose weights $\alpha$ and $\beta$ follow a sigmoid and whose evaporation rate follows a Gaussian density over the iterations.
+Each next cell is entered at the corner nearest to the robot.
+We use the parameter values of their paper: population 400, crossover probability 0.5, mutation probability 0.9, 100 ants, $\alpha = 8$, $\beta = 1$, $Q = 100$ and $\mu = 0.95$.
+The paper leaves some details open.
+Table~\ref{tab:xie-interpretation} lists our interpretation of each.
+Their decomposition (rectangles on an occupancy grid) and their grid A* are replaced by the shared decomposition and transitions of Section~\ref{sec:method}, so that only the ordering differs.
+We report this method as a re-implementation and do not compare with the numbers in their paper, which were obtained on other maps.
+
+\begin{table}[t]
+\centering
+\caption{Details of Xie et al.\ \cite{xieHybridGeneticAnt2024} that the paper leaves open, and the interpretation used here.}
+\label{tab:xie-interpretation}
+\small
+\begin{tabular}{p{0.3\linewidth} p{0.62\linewidth}}
+\toprule
+Item & Interpretation \\
+\midrule
+Eqs.~9--10, printed with $1 - e^{-x}$ & Sigmoid as stated in the text: $\alpha' = \alpha\,\sigma(x) + \mu\beta$, $\beta' = \beta\,(1 - \sigma(x))$ \\
+Sigmoid step $x$ & Linear from $-6$ to $6$ over the ant colony iterations \\
+Eqs.~11--12, mean and $\sigma$ not given & Mean 0, $\sigma = 1$, negative exponent; $\rho$ falls from 0.60 to 0.2 \\
+Initial pheromone & 0.5 on every edge, 2.0 on the edges of the best GA tour \\
+GA selection & Roulette wheel on fitness $1/L$, with the best tour kept \\
+Termination & The shared evaluation budget, split equally between GA and ant colony \\
+Start of the closed tour & At the cell whose centre is nearest to the robot start \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Ablation: length and turns}
+To separate the effect of the energy objective from the effect of the shared transition table and the exact variant choice, we also run the HGACO search on the transition table with the objective of Eq.~\eqref{eq:plan-cost} for length plus turns, $J = L + w_T N$, where $L$ is the path length, $N$ the number of turns and $w_T = 1$~m per turn.
+This method uses the same inputs as ours and differs only in its objective.
+
+\paragraph{Exact optimum}
+On lawns with at most eight cells, the energy-optimal plan is found by evaluating all $n!$ orders with Eq.~\eqref{eq:variant-dp}.
+It serves as a reference for how close the search methods come to the optimum.
+
+\subsection{Compute budget and seeds}
+\label{sec:setup-budget}
+
+Every stochastic method evaluates exactly 20\,000 orders per run, counting every order its search evaluates in all stages.
+Each method runs with seeds 0 to 9 on every lawn, giving 100 runs per method.
+Planning time is measured as the wall-clock time of the search.
+
+\subsection{Parameter tuning}
+\label{sec:setup-tuning}
+
+All methods were tuned with the same effort.
+Each method was run with five parameter settings, the first being its setting before tuning, on ten separate tuning lawns that are not among the test lawns.
+The tuning lawns are random lawns of $24 \times 16$~m with one or two obstacles and 6 or 7 cells.
+Each setting ran at budgets of 1000 and 2000 evaluations with three seeds, giving 60 runs per setting.
+A setting was scored by the number of runs that reached the exact optimum of the method's own objective: the energy for our method, the centre tour for Xie et al., and the length-and-turns cost for the ablation.
+Ties went to the lower mean gap to the optimum, and then to the setting before tuning.
+For Xie et al.\ all five settings reached the optimum in all 60 runs, so their published parameters were kept.
+For the ablation the best setting was a population of 100, 50 ants and 30\% of the budget for the GA.
+
+\subsection{Metrics}
+\label{sec:setup-metrics}
+
+For every run we record the following quantities of the complete path, from the robot start to the end of the last cell:
+\begin{itemize}
+\item \emph{Energy}: the modelled battery energy, Eq.~\eqref{eq:path-energy}.
+\item \emph{Path length} and \emph{turns}, counted as in Section~\ref{sec:method-cost}.
+\item \emph{Connection length}: the length of the path outside the cells, that is, the start link and the transitions.
+\item \emph{Coverage}: the area of the lawn inside the swath, the path widened by $w/2$ on each side, as a share of the lawn area. Lanes end at the boundary of the free area and the swath does not extend past the end of a segment, so a band of width $c$ at the lane ends stays uncovered and coverage is below 100\% for every method.
+\item \emph{Overlap}: the summed area of the swaths of the individual segments in excess of the total swath, as a share of the swath.
+\item \emph{Planning time}.
+\end{itemize}
+
+\subsection{Statistical analysis}
+\label{sec:setup-statistics}
+
+Runs of two methods are paired by lawn and seed.
+For each pair we compute the relative difference $d = 100\,(x_{\mathrm{ours}} / x_{\mathrm{other}} - 1)$ in percent.
+On each lawn, a two-sided Wilcoxon signed-rank test \cite{wilcoxonIndividualComparisonsRanking1945} over the ten seeds tests whether $d$ is centred on zero, and the $p$-values are corrected for the ten lawns with the Holm method \cite{holmSimpleSequentiallyRejective1979}.
+With ten seeds, the smallest attainable $p$-value is $2/2^{10} \approx 0.002$, or 0.020 after the correction.
+Across lawns, the same test is applied to the mean difference of each lawn, because seeds on the same lawn are not independent.
+Pairs with no difference are left out of the tests.
+As effect size we report the matched-pairs rank-biserial correlation $r = (W^{+} - W^{-})/(W^{+} + W^{-})$ \cite{kerbySimpleDifferenceFormula2014}, which is $-1$ when our method is lower in every pair.
+
+\subsection{Implementation}
+\label{sec:setup-implementation}
+
+The planner is written in Python with NumPy, SciPy and Shapely, as a package of the ROS~2 workspace of this project.
+% TODO: name the CPU and memory of the machine used for the final runs.
+The code, the test lawns, the experiment and tuning scripts and the result data are available in the project repository.
+% TODO: add the repository URL and the Zenodo DOI (also in the Data availability statement).
