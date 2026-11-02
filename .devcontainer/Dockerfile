@@ -34,7 +34,7 @@ RUN apt-get install -y \
     python3-deap
 # scikit-fuzzy has no apt package
 RUN pip install --break-system-packages scikit-fuzzy
-# LaTeX for the journal paper in paper/: latexmk and the packages that elsarticle needs
+# LaTeX for the journal paper in paper/: latexmk and the packages that the Elsevier CAS class (cas-sc) needs
 RUN apt-get install -y --no-install-recommends \
     latexmk \
     texlive-latex-recommended \
