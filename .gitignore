@@ -8,6 +8,7 @@ __pycache__/
 *.pyc
 
 # LaTeX build files (scoped to paper/ so they do not hide files elsewhere)
+paper/**/*.abs
 paper/**/*.aux
 paper/**/*.bbl
 paper/**/*.bcf

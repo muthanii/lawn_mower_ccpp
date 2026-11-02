@@ -1,40 +1,43 @@
 % Journal paper for Biomimetic Intelligence and Robotics (Elsevier/KeAi).
 % Build from the repository root: latexmk -pdf paper/main.tex
-\documentclass[preprint,12pt]{elsarticle}
+% Elsevier CAS single-column class (texlive-publishers). It already loads
+% amsmath, amssymb, graphicx, booktabs and hyperref.
+\documentclass[a4paper,fleqn]{cas-sc}
 
-\usepackage{amsmath,amssymb}
-\usepackage{graphicx}
-\usepackage{booktabs}
+\usepackage[numbers]{natbib}
 \usepackage{siunitx}
-\usepackage{hyperref}
 
 % Plotting scripts write their figures to paper/figures/
 \graphicspath{{figures/}}
 
-\journal{Biomimetic Intelligence and Robotics}
-
 \begin{document}
 
-\begin{frontmatter}
+\let\WriteBookmarks\relax
+\def\floatpagepagefraction{1}
+\def\textpagefraction{.001}
 
-\title{Intelligent Complete Coverage Path Planning for an Autonomous Lawn Mower Robot Using Soft Computing Techniques}
+\shorttitle{Coverage path planning for a lawn mower robot}
+\shortauthors{Author Name}
 
-\author[aff1]{Author Name\corref{cor1}}
+\title[mode = title]{Intelligent Complete Coverage Path Planning for an Autonomous Lawn Mower Robot Using Soft Computing Techniques}
+
+\author[1]{Author Name}[orcid=0000-0000-0000-0000]
+\cormark[1]
 \ead{author@example.com}
-\cortext[cor1]{Corresponding author.}
-\affiliation[aff1]{organization={Department},
+\affiliation[1]{organization={Department},
             city={City},
             country={Country}}
+\cortext[1]{Corresponding author.}
 
 \input{sections/abstract}
 
-\begin{keyword}
+\begin{keywords}
 complete coverage path planning \sep lawn mower robot \sep
 boustrophedon decomposition \sep genetic algorithm \sep
 particle swarm optimization \sep fuzzy logic control \sep energy efficiency
-\end{keyword}
+\end{keywords}
 
-\end{frontmatter}
+\maketitle
 
 \input{sections/introduction}
 \input{sections/related-work}
@@ -47,7 +50,7 @@ particle swarm optimization \sep fuzzy logic control \sep energy efficiency
 \input{sections/conclusion}
 \input{sections/declarations}
 
-\bibliographystyle{elsarticle-num}
+\bibliographystyle{cas-model2-names}
 \bibliography{references}
 
 \end{document}
