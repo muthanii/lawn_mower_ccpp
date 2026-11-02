@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.9.0...v1.10.0) (2026-11-02)
+
+
+### Features
+
+* **planning:** let each cell choose its sweep angle ([#29](https://github.com/muthanii/lawn_mower_ccpp/issues/29)) ([500f950](https://github.com/muthanii/lawn_mower_ccpp/commit/500f950904891cbe876a1bd4de980a9764ba4f21))
+
 ## [1.9.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.8.0...v1.9.0) (2026-11-01)
 
 
