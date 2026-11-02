@@ -47,6 +47,24 @@
 \usepackage{lastpage}
 \AtBeginDocument{\def\lastpage{\pageref*{LastPage}}}
 
+% CAS sets the corresponding-author, email and ORCID notes as footnotes on the title
+% page. Whenever a float is met, LaTeX's output routine puts the page back and
+% re-inserts pending footnotes after it, at the float's position. If the page then
+% breaks above that position, the title-page notes move to the next page. Re-insert
+% them before the page instead, so they stay where they were set. \unvcopy keeps
+% \footins full for the kernel's room check; the later \@reinserts skip it.
+\usepackage{etoolbox}
+\makeatletter
+\def\paper@reinsertsnofn{\global\setbox\footins\box\voidb@x \@reinserts}
+\patchcmd\@specialoutput{\unvbox \@holdpg \@next}
+  {\ifvoid\footins\else\insert\footins{\unvcopy\footins}\fi \unvbox \@holdpg \@next}{}
+  {\PackageWarningNoLine{main}{Could not keep the title-page notes on page 1}}
+\patchcmd\@specialoutput{\@reinserts \@addtocurcol}{\paper@reinsertsnofn \@addtocurcol}{}
+  {\PackageWarningNoLine{main}{Could not keep the title-page notes on page 1}}
+\patchcmd\@specialoutput{\@reinserts \@addmarginpar}{\paper@reinsertsnofn \@addmarginpar}{}
+  {\PackageWarningNoLine{main}{Could not keep the title-page notes on page 1}}
+\makeatother
+
 \begin{document}
 \let\WriteBookmarks\relax
 \def\floatpagepagefraction{1}
