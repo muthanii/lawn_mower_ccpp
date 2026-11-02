@@ -59,10 +59,10 @@ def test_tables_and_report():
     rows = fake_rows()
     energy = analysis.energy_table(rows, 'pioneer3at')
     assert r'\texttt{lawn\_a}' in energy and r'\label{tab:ordering-energy}' in energy
-    assert '0.97 & $-2.00$' in energy  # optimum (kJ) then our difference to Xie et al.
+    assert r'0.97 & \textminus{}2.00' in energy  # optimum (kJ) then our difference to Xie et al.
     assert energy.count(r'\\') == 2 + 1 + 1  # header, two lawns, the across-lawns row
     metrics = analysis.metrics_table(rows, 'pioneer3at')
-    assert 'Energy (kJ) & 1.48 & 1.51 & $-2.00$' in metrics
+    assert r'Energy (kJ) & 1.48 & 1.51 & \textminus{}2.00' in metrics
     text = analysis.report(rows)
     assert 'energy_ga vs xie2024' in text and 'lawn_b' in text
 

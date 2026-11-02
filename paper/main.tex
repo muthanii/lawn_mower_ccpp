@@ -16,6 +16,37 @@
 % Plotting scripts write their figures to paper/figures/
 \graphicspath{{figures/}}
 
+% CAS's abstract takes an optional title it never uses; looking ahead for it reads
+% the abstract's first command before the verbatim copy starts, and that command is
+% lost (here the first \textbf). Drop the optional argument.
+\RenewDocumentEnvironment{abstract}{}{\verbatimwrite{\jobname.abs}}{\endverbatimwrite}
+
+% CAS sets the keywords box beside the abstract, then backs up by the box's height
+% without reserving it. When the abstract is shorter than the keyword list, the
+% keywords run into the first section. Pad the abstract to the keywords' height.
+\makeatletter
+\newdimen\paper@keyht
+\newsavebox\paper@absbox
+\AddToHook{env/Abstract/begin}{%
+  \global\paper@keyht=\dimexpr\ht\csname g_stm_key_box\endcsname
+                             +\dp\csname g_stm_key_box\endcsname\relax
+  \global\sbox\paper@absbox{\vbox{\hsize=.65\textwidth \parindent\z@
+    \noindent\abstractname\par\vskip-4pt
+    \noindent\rule{.65\textwidth}{.2pt}\par
+    \footnotesize\everypar{\parindent1.5em}\noindent\ignorespaces
+    \IfFileExists{\jobname.abs}{\input{\jobname.abs}}{}\par}}}
+\AddToHook{env/Abstract/end}{%
+  \par
+  \ifdim\dimexpr\ht\paper@absbox+\dp\paper@absbox\relax<\paper@keyht
+    \vskip\dimexpr\paper@keyht-\ht\paper@absbox-\dp\paper@absbox\relax
+  \fi}
+\makeatother
+
+% CAS writes the page count for its "Page x of y" footer before pending floats are
+% flushed, so trailing table or figure pages are missed. Take it from lastpage.
+\usepackage{lastpage}
+\AtBeginDocument{\def\lastpage{\pageref*{LastPage}}}
+
 \begin{document}
 \let\WriteBookmarks\relax
 \def\floatpagepagefraction{1}
