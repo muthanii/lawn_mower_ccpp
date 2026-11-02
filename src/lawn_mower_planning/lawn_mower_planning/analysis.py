@@ -174,6 +174,7 @@ def energy_table(rows, robot):
         r'\label{tab:ordering-energy}',
         r'\small',
         r'\setlength{\tabcolsep}{4pt}',
+        r'\resizebox{\textwidth}{!}{%',
         r'\begin{tabular}{l r ' + 'r ' * len(methods) + r'r r}',
         r'\toprule',
         f'Lawn & Cells & {head} & $\\Delta$ (\\%) & $p$ \\\\',
@@ -198,7 +199,7 @@ def energy_table(rows, robot):
         f'All lawns & & \\multicolumn{{{len(methods)}}}{{l}}{{test over the {t.n} lawn means, '
         f'rank-biserial $r = {t.r:+.2f}$}} & {_signed(t.mean_diff)} & {fmt_p(t.p)} \\\\',
         r'\bottomrule',
-        r'\end{tabular}',
+        r'\end{tabular}}',
         r'\end{table*}',
     ]
     return '\n'.join(lines) + '\n'
@@ -219,6 +220,7 @@ def metrics_table(rows, robot):
         r'\label{tab:ordering-metrics}',
         r'\small',
         r'\setlength{\tabcolsep}{4pt}',
+        r'\resizebox{\linewidth}{!}{%',
         r'\begin{tabular}{l r r r r r r r r}',
         r'\toprule',
         r' & & \multicolumn{4}{c}{vs.\ Xie et al.} & \multicolumn{3}{c}{vs.\ L+T} \\',
@@ -237,7 +239,7 @@ def metrics_table(rows, robot):
                      f'{_fmt(statistics.mean(xie), metric)} & {_signed(a.mean_diff)} & '
                      f'{fmt_p(a.p)} & {_r_tex(a.r)} & {_signed(b.mean_diff)} & {fmt_p(b.p)} & '
                      f'{_r_tex(b.r)} \\\\')
-    lines += [r'\bottomrule', r'\end{tabular}', r'\end{table}']
+    lines += [r'\bottomrule', r'\end{tabular}}', r'\end{table}']
     return '\n'.join(lines) + '\n'
 
 
