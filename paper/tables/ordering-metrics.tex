@@ -2,23 +2,25 @@
 % Regenerate it from the experiment CSV after every run.
 \begin{table}[t]
 \centering
-\caption{Our GA against Xie et al.\ and against the search of Xie et al.\ with a length-and-turns objective on the same transition table (L+T), over all lawns and seeds, robot model \texttt{pioneer3at}. Means over all runs; $\Delta$: mean over the lawns of the relative difference of our GA, paired by seed; $p$: two-sided Wilcoxon signed-rank test over the lawn means; $r$: rank-biserial effect size.}
+\caption{Our method (the decomposition direction chosen by energy, then the GA order) against Xie et al.\ on the default decomposition, and against the ordering of Xie et al.\ on our chosen decomposition (same dir.), which leaves the ordering as the only difference, over all lawns and seeds, robot model \texttt{pioneer3at}. Means over all runs; $\Delta$: mean over the lawns of the relative difference of our method, paired by seed; $p$: two-sided Wilcoxon signed-rank test over the lawn means; $r$: rank-biserial effect size.}
 \label{tab:ordering-metrics}
 \small
 \setlength{\tabcolsep}{4pt}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{l r r r r r r r r}
 \toprule
- & & \multicolumn{4}{c}{vs.\ Xie et al.} & \multicolumn{3}{c}{vs.\ L+T} \\
+ & & \multicolumn{4}{c}{vs.\ Xie et al.} & \multicolumn{3}{c}{vs.\ Xie et al., same dir.} \\
 \cmidrule(lr){3-6} \cmidrule(lr){7-9}
 Metric & Ours & Xie & $\Delta$ (\%) & $p$ & $r$ & $\Delta$ (\%) & $p$ & $r$ \\
 \midrule
-Energy (kJ) & 14.30 & 14.65 & $-2.58$ & 0.002 & $-1.00$ & $-0.51$ & 0.004 & $-1.00$ \\
-Path length (m) & 1250.6 & 1273.8 & $-2.11$ & 0.004 & $-0.96$ & $+0.37$ & 0.039 & $+0.78$ \\
-Turns & 180 & 184 & $-1.81$ & 0.002 & $-1.00$ & $-0.42$ & 0.297 & $-0.50$ \\
-Connection length (m) & 36.5 & 54.8 & $-32.11$ & 0.006 & $-0.93$ & $+18.83$ & 0.008 & $+0.96$ \\
-Coverage (\%) & 94.6 & 95.1 & $-0.52$ & 0.002 & $-1.00$ & $+0.06$ & 0.203 & $+0.51$ \\
-Planning time (s) & 5.1 & 4.4 & $+19.43$ & 0.002 & $+1.00$ & $-25.62$ & 0.002 & $-1.00$ \\
+Energy (kJ) & 13.12 & 14.58 & $-10.30$ & 0.002 & $-1.00$ & $-3.26$ & 0.002 & $-1.00$ \\
+Energy per mowed area (J/m$^2$) & 23.1 & 25.6 & $-9.60$ & 0.002 & $-1.00$ & $-2.99$ & 0.002 & $-1.00$ \\
+Path length (m) & 1277.0 & 1289.2 & $-1.00$ & 0.275 & $-0.42$ & $-2.46$ & 0.002 & $-1.00$ \\
+Turns & 133 & 178 & $-24.41$ & 0.002 & $-1.00$ & $-2.43$ & 0.002 & $-1.00$ \\
+Connection length (m) & 32.9 & 46.7 & $-17.86$ & 0.432 & $-0.31$ & $-41.97$ & 0.004 & $-0.96$ \\
+Coverage (\%) & 95.1 & 95.9 & $-0.78$ & 0.002 & $-1.00$ & $-0.27$ & 0.037 & $-0.75$ \\
+Overlap (\%) & 8.5 & 8.8 & $-2.52$ & 0.695 & $-0.16$ & $-23.87$ & 0.002 & $-1.00$ \\
+Planning time (s) & 5.7 & 2.4 & $+136.43$ & 0.002 & $+1.00$ & $+11.14$ & 0.002 & $+1.00$ \\
 \bottomrule
 \end{tabular}}
 \end{table}

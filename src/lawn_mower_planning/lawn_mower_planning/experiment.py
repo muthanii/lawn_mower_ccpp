@@ -13,6 +13,10 @@ A method is a function (problem, settings, seed) -> RunResult, or a string
 that says why it skips this lawn. Every method runs with settings.budget
 evaluations; Settings holds each method's other parameters. Register new
 methods in METHODS.
+
+The methods in CHOSEN_DIRECTION plan on the decomposition whose direction
+direction.choose_direction picks by energy, the others on the default one
+(lanes along y). energy_direction_ga pays for the choice from its budget.
 """
 
 import argparse
@@ -25,6 +29,7 @@ import time
 from dataclasses import dataclass, replace
 
 from .brute_force import brute_force_order
+from .direction import CANDIDATE_LIMIT, SCREEN_EVALUATIONS, choose_direction
 from .energy_order import EnergyGaParams, EnergyPsoParams, energy_ga_order, energy_pso_order
 from .maps import DEFAULT_WIDTH, shared_lawns
 from .path_cost import PathCost
@@ -40,8 +45,9 @@ BRUTE_FORCE_CELLS = 8  # energy_optimal runs only up to 8! = 40320 orders
 SWEEP_ANGLES_DEG = (0.0, 45.0, 90.0, 135.0)
 
 
-# Tuned with tuning.py (see the package README); the paper's settings tied for xie2024.
-TUNED_LENGTH_TURNS = XieGaAcoParams(population=100, ants=50, ga_share=0.3)
+# Tuned with tuning.py (see the package README): the paper's settings won for the ablation
+# and tied for xie2024.
+TUNED_LENGTH_TURNS = XieGaAcoParams()
 
 
 @dataclass(frozen=True)
@@ -53,10 +59,12 @@ class Settings:
     ga: EnergyGaParams = EnergyGaParams()
     pso: EnergyPsoParams = EnergyPsoParams()
     xie_length_turns: XieGaAcoParams = TUNED_LENGTH_TURNS
+    directions: int = CANDIDATE_LIMIT             # candidate decomposition directions
+    screen_evaluations: int = SCREEN_EVALUATIONS  # evaluated orders to score one of them
 
-    def budgeted(self, params):
-        """params with the shared budget."""
-        return replace(params, evaluations=self.budget)
+    def budgeted(self, params, spent=0):
+        """params with the shared budget, less the evaluations already spent."""
+        return replace(params, evaluations=self.budget - spent)
 
 
 def _energy_optimal(problem, settings, seed):
@@ -70,10 +78,10 @@ def _energy_optimal(problem, settings, seed):
     return RunResult(plan, time.perf_counter() - t0, 0)
 
 
-def _energy_ga(problem, settings, seed):
+def _energy_ga(problem, settings, seed, spent=0):
     if 'energy' not in problem.table.metrics:
         return 'no energy model'
-    return energy_ga_order(problem.table, settings.budgeted(settings.ga), seed)
+    return energy_ga_order(problem.table, settings.budgeted(settings.ga, spent), seed)
 
 
 def _energy_pso(problem, settings, seed):
@@ -91,18 +99,25 @@ def _xie_length_turns(problem, settings, seed):
 
 
 METHODS = {
-    'energy_ga': _energy_ga,              # our method, GA
+    'energy_ga': _energy_ga,              # our ordering alone, GA, default direction
     'energy_pso': _energy_pso,            # our method, PSO
     'xie2024': _xie2024,                  # baseline
     'xie_length_turns': _xie_length_turns,  # ablation: Xie's search, length + turns objective
     'energy_optimal': _energy_optimal,    # exact reference, small lawns
+    'energy_direction_ga': _energy_ga,    # our full method: energy-chosen direction, then the GA
+    'xie2024_direction': _xie2024,        # ablation: the baseline on our chosen direction
 }
 DETERMINISTIC = {'energy_optimal'}  # run once per lawn, not once per seed
+# Methods that plan on the energy-chosen decomposition direction. The value
+# says whether the method pays for the choice from its own budget: ours does,
+# and the ablation gets the direction for free on top of its full budget.
+CHOSEN_DIRECTION = {'energy_direction_ga': True, 'xie2024_direction': False}
 
 COLUMNS = ['map', 'cells', 'method', 'seed', 'budget', 'robot', 'width', 'sweep_angles',
-           'cost', 'length',
-           'turns', 'energy', 'energy_wh', 'connection_length', 'coverage', 'overlap',
-           'seconds', 'evaluations', 'ga_evaluations', 'order', 'variants']
+           'lane_angle', 'cost', 'length',
+           'turns', 'energy', 'energy_wh', 'energy_per_area', 'connection_length', 'coverage',
+           'overlap', 'seconds', 'evaluations', 'ga_evaluations', 'direction_evaluations',
+           'order', 'variants']
 
 
 def connection_length(problem, plan):
@@ -111,9 +126,27 @@ def connection_length(problem, plan):
     return plan.metrics['length'] - inside
 
 
-def run_row(lawn, problem, method, seed, settings, robot, width):
-    """One run as a CSV row, or the reason the method skips this lawn."""
-    result = METHODS[method](problem, settings, seed)
+def run_row(lawn, problem, method, seed, settings, robot, width, choice=None):
+    """One run as a CSV row, or the reason the method skips this lawn.
+
+    choice is the DirectionChoice of the lawn, for the methods in
+    CHOSEN_DIRECTION. Its time counts in their seconds, and for a method that
+    pays for the choice its evaluations count too.
+    """
+    spent = 0
+    if method in CHOSEN_DIRECTION:
+        if choice is None:
+            return 'no energy model'
+        problem = choice.problem
+        if CHOSEN_DIRECTION[method]:
+            spent = choice.evaluations
+            if spent >= settings.budget:
+                return f'the direction choice uses the whole budget ({spent} evaluations)'
+            result = METHODS[method](problem, settings, seed, spent)
+        else:
+            result = METHODS[method](problem, settings, seed)
+    else:
+        result = METHODS[method](problem, settings, seed)
     if isinstance(result, str):
         return result
     plan = result.plan
@@ -122,10 +155,16 @@ def run_row(lawn, problem, method, seed, settings, robot, width):
     row.update(map=lawn.name, cells=problem.table.n_cells, method=method, seed=seed,
                budget=settings.budget, robot=robot, width=width,
                sweep_angles=' '.join(f'{math.degrees(a):g}' for a in problem.sweep_angles),
-               connection_length=connection_length(problem, plan))
+               lane_angle=round(math.degrees(problem.lane_angle), 3),
+               connection_length=connection_length(problem, plan),
+               evaluations=result.evaluations + spent, direction_evaluations=spent)
+    if method in CHOSEN_DIRECTION:
+        row['seconds'] += choice.seconds
     if 'energy' in plan.metrics:
         from lawn_mower_robot.energy import JOULES_PER_WH
         row['energy_wh'] = plan.metrics['energy'] / JOULES_PER_WH
+        # Energy per mowed square metre, so that plans with different coverage compare.
+        row['energy_per_area'] = plan.metrics['energy'] / (row['coverage'] / 100 * lawn.area.area)
     return row
 
 
@@ -146,9 +185,18 @@ def run(lawns, methods, seeds, settings, path_cost, robot, width, out=None, log=
             problem = build_problem(lawn.area, width, path_cost, start=lawn.start,
                                     sweep_angles=angles)
             log(f'{lawn.name}: {problem.table.n_cells} cells, {problem.table.n_variants} variants')
+            choice = None
+            if 'energy' in path_cost.metrics and any(m in CHOSEN_DIRECTION for m in methods):
+                screen = replace(settings.ga, evaluations=settings.screen_evaluations)
+                choice = choose_direction(lawn.area, width, path_cost, lawn.start, angles,
+                                          limit=settings.directions, screen=screen,
+                                          default=problem)
+                log(f'  direction: lanes at {math.degrees(choice.lane_angle):g} deg, '
+                    f'{choice.problem.table.n_cells} cells, {choice.evaluations} evaluations; '
+                    + ', '.join(f'{math.degrees(a):g}: {e:.0f} J' for a, e in choice.scores))
             for method in methods:
                 for seed in (seeds[:1] if method in DETERMINISTIC else seeds):
-                    row = run_row(lawn, problem, method, seed, settings, robot, width)
+                    row = run_row(lawn, problem, method, seed, settings, robot, width, choice)
                     if isinstance(row, str):
                         log(f'  {method}: skipped, {row}')
                         break
@@ -203,6 +251,11 @@ def main(argv=None):
     parser.add_argument('--sweep-angles', type=float, nargs='+', default=list(SWEEP_ANGLES_DEG),
                         help='lane angles each cell may use [deg from the BCD direction], '
                              'must include 0; 0 alone gives fixed vertical lanes')
+    parser.add_argument('--directions', type=int, default=CANDIDATE_LIMIT,
+                        help='candidate decomposition directions for the methods that choose '
+                             'one by energy (the default direction included)')
+    parser.add_argument('--screen-evaluations', type=int, default=SCREEN_EVALUATIONS,
+                        help='evaluated orders to score one candidate direction')
     parser.add_argument('--out', default='results.csv', help='CSV file (rows are appended)')
     args = parser.parse_args(argv)
 
@@ -218,7 +271,8 @@ def main(argv=None):
                         XieGaAcoParams(ga_share=args.xie_ga_share,
                                        population=args.xie_population, ants=args.xie_ants),
                         EnergyGaParams(population=args.ga_population),
-                        EnergyPsoParams(particles=args.pso_particles))
+                        EnergyPsoParams(particles=args.pso_particles),
+                        directions=args.directions, screen_evaluations=args.screen_evaluations)
     rows = run(lawns, args.methods, list(range(args.seeds)), settings, PathCost.from_config(cfg),
                cfg.name, args.width, args.out, log=lambda s: print(s, file=sys.stderr),
                sweep_angles_deg=tuple(args.sweep_angles))

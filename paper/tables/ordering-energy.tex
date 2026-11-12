@@ -2,27 +2,27 @@
 % Regenerate it from the experiment CSV after every run.
 \begin{table*}[t]
 \centering
-\caption{Energy of the coverage plan (kJ, mean $\pm$ standard deviation over 10 seeds) on the shared test lawns, robot model \texttt{pioneer3at}. $\Delta$: relative difference of our GA to Xie et al.; $p$: two-sided Wilcoxon signed-rank test over the seeds, Holm-corrected over the lawns. The optimum is exact (brute force) and only computed for lawns of up to 8 cells.}
+\caption{Energy of the coverage plan (kJ, mean $\pm$ standard deviation over 10 seeds) on the shared test lawns, robot model \texttt{pioneer3at}. Ours: the decomposition direction chosen by energy, then the GA order. Our dir.: the ordering of Xie et al.\ on our chosen decomposition. All other columns use the default decomposition (lanes along $y$), and Cells is its cell count. $\Delta$: relative difference of Ours to Xie et al.; $p$: two-sided Wilcoxon signed-rank test over the seeds, Holm-corrected over the lawns. The optimum is the exact best order on the default decomposition (brute force), only computed for lawns of up to 8 cells.}
 \label{tab:ordering-energy}
 \small
 \setlength{\tabcolsep}{4pt}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{l r r r r r r r r}
+\begin{tabular}{l r r r r r r r r r r}
 \toprule
-Lawn & Cells & Ours (GA) & Ours (PSO) & Xie et al. & Xie search, L+T & Optimum & $\Delta$ (\%) & $p$ \\
+Lawn & Cells & Ours & Ours, order only & Order only, PSO & Xie et al. & Xie et al., our dir. & Xie search, L+T & Optimum & $\Delta$ (\%) & $p$ \\
 \midrule
-\texttt{two\_beds} & 7 & 6.21 $\pm$ 0.00 & 6.22 $\pm$ 0.01 & 6.50 $\pm$ 0.00 & 6.27 $\pm$ 0.00 & 6.21 & $-4.32$ & 0.020 \\
-\texttt{backyard} & 7 & 9.96 $\pm$ 0.00 & 9.96 $\pm$ 0.00 & 10.12 $\pm$ 0.00 & 9.96 $\pm$ 0.00 & 9.96 & $-1.61$ & 0.020 \\
-\texttt{l\_shape} & 7 & 11.08 $\pm$ 0.00 & 11.08 $\pm$ 0.00 & 11.37 $\pm$ 0.00 & 11.10 $\pm$ 0.00 & 11.08 & $-2.60$ & 0.020 \\
-\texttt{three\_beds} & 10 & 10.73 $\pm$ 0.00 & 10.73 $\pm$ 0.01 & 10.92 $\pm$ 0.03 & 10.74 $\pm$ 0.01 & -- & $-1.80$ & 0.020 \\
-\texttt{garden} & 10 & 16.94 $\pm$ 0.00 & 16.97 $\pm$ 0.02 & 17.52 $\pm$ 0.18 & 16.99 $\pm$ 0.04 & -- & $-3.32$ & 0.020 \\
-\texttt{park\_trees} & 13 & 21.98 $\pm$ 0.02 & 22.01 $\pm$ 0.03 & 22.25 $\pm$ 0.08 & 22.04 $\pm$ 0.01 & -- & $-1.23$ & 0.020 \\
-\texttt{sports\_edge} & 13 & 26.24 $\pm$ 0.03 & 26.33 $\pm$ 0.05 & 26.63 $\pm$ 0.08 & 26.36 $\pm$ 0.03 & -- & $-1.45$ & 0.020 \\
-\texttt{random\_1} & 10 & 12.76 $\pm$ 0.00 & 12.79 $\pm$ 0.03 & 13.23 $\pm$ 0.00 & 12.84 $\pm$ 0.05 & -- & $-3.58$ & 0.020 \\
-\texttt{random\_2} & 15 & 13.72 $\pm$ 0.01 & 13.82 $\pm$ 0.03 & 14.35 $\pm$ 0.05 & 13.91 $\pm$ 0.05 & -- & $-4.35$ & 0.020 \\
-\texttt{random\_3} & 7 & 13.41 $\pm$ 0.00 & 13.41 $\pm$ 0.00 & 13.62 $\pm$ 0.05 & 13.51 $\pm$ 0.00 & 13.41 & $-1.58$ & 0.020 \\
+\texttt{two\_beds} & 7 & 5.32 $\pm$ 0.00 & 5.88 $\pm$ 0.00 & 5.88 $\pm$ 0.00 & 6.21 $\pm$ 0.00 & 5.58 $\pm$ 0.03 & 5.95 $\pm$ 0.00 & 5.88 & $-14.19$ & 0.020 \\
+\texttt{backyard} & 7 & 9.09 $\pm$ 0.00 & 9.96 $\pm$ 0.00 & 9.96 $\pm$ 0.00 & 9.96 $\pm$ 0.00 & 9.40 $\pm$ 0.00 & 9.96 $\pm$ 0.00 & 9.96 & $-8.71$ & 0.020 \\
+\texttt{l\_shape} & 7 & 10.05 $\pm$ 0.00 & 10.65 $\pm$ 0.00 & 10.65 $\pm$ 0.01 & 10.91 $\pm$ 0.02 & 10.33 $\pm$ 0.03 & 10.68 $\pm$ 0.00 & 10.65 & $-7.93$ & 0.020 \\
+\texttt{three\_beds} & 10 & 8.92 $\pm$ 0.00 & 10.15 $\pm$ 0.00 & 10.17 $\pm$ 0.02 & 10.36 $\pm$ 0.04 & 9.29 $\pm$ 0.00 & 10.23 $\pm$ 0.04 & -- & $-13.85$ & 0.020 \\
+\texttt{garden} & 10 & 15.12 $\pm$ 0.00 & 16.94 $\pm$ 0.00 & 16.98 $\pm$ 0.02 & 17.44 $\pm$ 0.19 & 15.53 $\pm$ 0.09 & 16.98 $\pm$ 0.01 & -- & $-13.28$ & 0.020 \\
+\texttt{park\_trees} & 13 & 19.73 $\pm$ 0.00 & 21.98 $\pm$ 0.02 & 22.02 $\pm$ 0.04 & 22.24 $\pm$ 0.06 & 20.41 $\pm$ 0.02 & 22.04 $\pm$ 0.01 & -- & $-11.28$ & 0.020 \\
+\texttt{sports\_edge} & 13 & 24.50 $\pm$ 0.03 & 26.23 $\pm$ 0.04 & 26.32 $\pm$ 0.05 & 26.63 $\pm$ 0.08 & 25.15 $\pm$ 0.10 & 26.35 $\pm$ 0.03 & -- & $-8.00$ & 0.020 \\
+\texttt{random\_1} & 10 & 12.71 $\pm$ 0.00 & 13.87 $\pm$ 0.00 & 13.88 $\pm$ 0.01 & 14.16 $\pm$ 0.04 & 13.20 $\pm$ 0.01 & 13.98 $\pm$ 0.03 & -- & $-10.28$ & 0.020 \\
+\texttt{random\_2} & 10 & 12.90 $\pm$ 0.00 & 14.00 $\pm$ 0.00 & 14.02 $\pm$ 0.02 & 14.17 $\pm$ 0.00 & 13.38 $\pm$ 0.08 & 14.06 $\pm$ 0.02 & -- & $-9.00$ & 0.020 \\
+\texttt{random\_3} & 7 & 12.82 $\pm$ 0.00 & 13.55 $\pm$ 0.00 & 13.55 $\pm$ 0.01 & 13.70 $\pm$ 0.01 & 13.10 $\pm$ 0.12 & 13.64 $\pm$ 0.00 & 13.55 & $-6.44$ & 0.020 \\
 \midrule
-All lawns & & \multicolumn{5}{l}{test over the 10 lawn means, rank-biserial $r = -1.00$} & $-2.58$ & 0.002 \\
+All lawns & & \multicolumn{7}{l}{test over the 10 lawn means, rank-biserial $r = -1.00$} & $-10.30$ & 0.002 \\
 \bottomrule
 \end{tabular}}
 \end{table*}

@@ -18,6 +18,13 @@ lawn where all pairs tie has no test.
 
 A deterministic method (energy_optimal) has one run per lawn; it is only
 reported as a reference value, not tested.
+
+When the CSV has energy_direction_ga (our full method: the decomposition
+direction chosen by energy, then the GA order), it is the method that the
+tables compare with Xie et al., and xie2024_direction (their ordering on our
+chosen decomposition) splits the gain into the direction and the ordering.
+Without it the tables compare energy_ga, our ordering on the shared default
+decomposition.
 """
 
 import argparse
@@ -30,18 +37,29 @@ from dataclasses import dataclass
 
 import numpy as np
 
-OURS = 'energy_ga'
-COMPARISONS = (('energy_ga', 'xie2024'),           # our method against the baseline
+ORDER_ONLY = 'energy_ga'          # our ordering on the shared default decomposition
+FULL = 'energy_direction_ga'      # our full method: energy-chosen direction, then the GA
+SAME_DIRECTION = 'xie2024_direction'  # Xie et al.'s ordering on our chosen decomposition
+COMPARISONS = ((FULL, 'xie2024'),                  # our full method against the baseline
+               (FULL, SAME_DIRECTION),             # the ordering alone, on our decomposition
+               (SAME_DIRECTION, 'xie2024'),        # the direction alone, with their ordering
+               ('energy_ga', 'xie2024'),           # the ordering alone, default decomposition
                ('energy_ga', 'xie_length_turns'),  # the energy objective alone (same search inputs)
-               ('energy_pso', 'xie2024'))          # the PSO form of our method
-METRICS = ('energy', 'length', 'turns', 'connection_length', 'coverage', 'seconds')
-LABELS = {'energy': 'Energy (kJ)', 'length': 'Path length (m)', 'turns': 'Turns',
+               ('energy_pso', 'xie2024'))          # the PSO form of our ordering
+METRICS = ('energy', 'energy_per_area', 'length', 'turns', 'connection_length', 'coverage',
+           'overlap', 'seconds')
+LABELS = {'energy': 'Energy (kJ)', 'energy_per_area': r'Energy per mowed area (J/m$^2$)',
+          'length': 'Path length (m)', 'turns': 'Turns',
           'connection_length': 'Connection length (m)', 'coverage': r'Coverage (\%)',
-          'seconds': 'Planning time (s)'}
+          'overlap': r'Overlap (\%)', 'seconds': 'Planning time (s)'}
 SCALE = {'energy': 1e-3}  # J -> kJ in the tables
 METHOD_LABELS = {'energy_ga': 'Ours (GA)', 'energy_pso': 'Ours (PSO)',
                  'xie2024': 'Xie et al.', 'xie_length_turns': 'Xie search, L+T',
                  'energy_optimal': 'Optimum'}
+# With our full method in the CSV, the columns say which decomposition each method uses.
+DIRECTION_LABELS = {FULL: 'Ours', 'energy_ga': 'Ours, order only', 'energy_pso': 'Order only, PSO',
+                    'xie2024': 'Xie et al.', SAME_DIRECTION: 'Xie et al., our dir.',
+                    'xie_length_turns': 'Xie search, L+T', 'energy_optimal': 'Optimum'}
 ALPHA = 0.05
 
 
@@ -51,6 +69,15 @@ class Test:
     mean_diff: float  # mean relative difference over all pairs [%]
     p: float          # two-sided Wilcoxon p, nan without a test
     r: float          # rank-biserial effect size, nan without a test
+
+
+def has(rows, method):
+    return any(r['method'] == method for r in rows)
+
+
+def main_method(rows):
+    """The method the tables compare with Xie et al.: our full method if it ran."""
+    return FULL if has(rows, FULL) else ORDER_ONLY
 
 
 def load(path):
@@ -156,21 +183,35 @@ def _escape(name):
 
 
 def energy_table(rows, robot):
-    """LaTeX table: energy per lawn and method, and our GA against Xie et al."""
-    methods = [m for m in ('energy_ga', 'energy_pso', 'xie2024', 'xie_length_turns',
-                           'energy_optimal') if any(r['method'] == m for r in rows)]
-    tests = per_lawn(rows, OURS, 'xie2024', 'energy')
-    seeds = max(len(values(rows, lawn, OURS, 'energy')) for lawn in lawns(rows))
-    head = ' & '.join(METHOD_LABELS[m] for m in methods)
+    """LaTeX table: energy per lawn and method, and our method against Xie et al."""
+    ours = main_method(rows)
+    full = ours == FULL
+    labels = DIRECTION_LABELS if full else METHOD_LABELS
+    methods = [m for m in (FULL, 'energy_ga', 'energy_pso', 'xie2024', SAME_DIRECTION,
+                           'xie_length_turns', 'energy_optimal') if has(rows, m)]
+    tests = per_lawn(rows, ours, 'xie2024', 'energy')
+    seeds = max(len(values(rows, lawn, ours, 'energy')) for lawn in lawns(rows))
+    head = ' & '.join(labels[m] for m in methods)
+    if full:
+        setup = (r'Ours: the decomposition direction chosen by energy, then the GA order. '
+                 r'Our dir.: the ordering of Xie et al.\ on our chosen decomposition. '
+                 r'All other columns use the default decomposition (lanes along $y$), and '
+                 r'Cells is its cell count. $\Delta$: relative difference of Ours to Xie et al.; ')
+        optimum = (r'The optimum is the exact best order on the default decomposition (brute '
+                   r'force), only computed for lawns of up to 8 cells.}')
+    else:
+        setup = r'$\Delta$: relative difference of our GA to Xie et al.; '
+        optimum = (r'The optimum is exact (brute force) and only computed for lawns of up to '
+                   r'8 cells.}')
     lines = [
         _header(),
         r'\begin{table*}[t]',
         r'\centering',
         r'\caption{Energy of the coverage plan (kJ, mean $\pm$ standard deviation over '
         f'{seeds} seeds) on the shared test lawns, robot model \\texttt{{{_escape(robot)}}}. '
-        r'$\Delta$: relative difference of our GA to Xie et al.; $p$: two-sided Wilcoxon '
+        + setup + r'$p$: two-sided Wilcoxon '
         r'signed-rank test over the seeds, Holm-corrected over the lawns. '
-        r'The optimum is exact (brute force) and only computed for lawns of up to 8 cells.}',
+        + optimum,
         r'\label{tab:ordering-energy}',
         r'\small',
         r'\setlength{\tabcolsep}{4pt}',
@@ -193,7 +234,7 @@ def energy_table(rows, robot):
         t = tests[lawn]
         lines.append(f'\\texttt{{{_escape(lawn)}}} & {cells} & ' + ' & '.join(cols)
                      + f' & {_signed(t.mean_diff)} & {fmt_p(t.p)} \\\\')
-    t = across_lawns(rows, OURS, 'xie2024', 'energy')
+    t = across_lawns(rows, ours, 'xie2024', 'energy')
     lines += [
         r'\midrule',
         f'All lawns & & \\multicolumn{{{len(methods)}}}{{l}}{{test over the {t.n} lawn means, '
@@ -206,15 +247,34 @@ def energy_table(rows, robot):
 
 
 def metrics_table(rows, robot):
-    """LaTeX table: every metric, our GA against Xie et al. and against the L+T ablation."""
+    """LaTeX table: every metric, our method against Xie et al. and against one ablation.
+
+    The ablation is Xie et al.'s ordering on our chosen decomposition when our
+    full method ran, and otherwise their search with a length-and-turns
+    objective (against our GA, on the default decomposition).
+    """
+    ours = main_method(rows)
+    if ours == FULL:
+        other = SAME_DIRECTION
+        caption = (r'\caption{Our method (the decomposition direction chosen by energy, then '
+                   r'the GA order) against Xie et al.\ on the default decomposition, and against '
+                   r'the ordering of Xie et al.\ on our chosen decomposition (same dir.), which '
+                   r'leaves the ordering as the only difference, over all lawns and '
+                   r'seeds, robot model \texttt{' + _escape(robot) + r'}. ')
+        block = r'vs.\ Xie et al., same dir.'
+    else:
+        other = 'xie_length_turns'
+        caption = (r'\caption{Our GA against Xie et al.\ and against the search of Xie et al.\ '
+                   r'with a length-and-turns objective on the same transition table (L+T), over '
+                   r'all lawns and seeds, robot model \texttt{' + _escape(robot) + r'}. ')
+        block = r'vs.\ L+T'
     lines = [
         _header(),
         r'\begin{table}[t]',
         r'\centering',
-        r'\caption{Our GA against Xie et al.\ and against the search of Xie et al.\ with a '
-        r'length-and-turns objective on the same transition table (L+T), over all lawns and '
-        r'seeds, robot model \texttt{' + _escape(robot) + r'}. Means over all runs; $\Delta$: '
-        r'mean over the lawns of the relative difference of our GA, paired by seed; $p$: '
+        caption + r'Means over all runs; $\Delta$: '
+        r'mean over the lawns of the relative difference of ' +
+        ('our method' if ours == FULL else 'our GA') + r', paired by seed; $p$: '
         r'two-sided Wilcoxon signed-rank test over the lawn means; $r$: rank-biserial effect '
         r'size.}',
         r'\label{tab:ordering-metrics}',
@@ -223,19 +283,19 @@ def metrics_table(rows, robot):
         r'\resizebox{\linewidth}{!}{%',
         r'\begin{tabular}{l r r r r r r r r}',
         r'\toprule',
-        r' & & \multicolumn{4}{c}{vs.\ Xie et al.} & \multicolumn{3}{c}{vs.\ L+T} \\',
+        r' & & \multicolumn{4}{c}{vs.\ Xie et al.} & \multicolumn{3}{c}{' + block + r'} \\',
         r'\cmidrule(lr){3-6} \cmidrule(lr){7-9}',
         r'Metric & Ours & Xie & $\Delta$ (\%) & $p$ & $r$ & $\Delta$ (\%) & $p$ & $r$ \\',
         r'\midrule',
     ]
     for metric in METRICS:
-        ours = [float(r[metric]) for r in rows if r['method'] == OURS and r.get(metric)]
+        mine = [float(r[metric]) for r in rows if r['method'] == ours and r.get(metric)]
         xie = [float(r[metric]) for r in rows if r['method'] == 'xie2024' and r.get(metric)]
-        if not ours or not xie:
+        if not mine or not xie:
             continue
-        a = across_lawns(rows, OURS, 'xie2024', metric)
-        b = across_lawns(rows, OURS, 'xie_length_turns', metric)
-        lines.append(f'{LABELS[metric]} & {_fmt(statistics.mean(ours), metric)} & '
+        a = across_lawns(rows, ours, 'xie2024', metric)
+        b = across_lawns(rows, ours, other, metric)
+        lines.append(f'{LABELS[metric]} & {_fmt(statistics.mean(mine), metric)} & '
                      f'{_fmt(statistics.mean(xie), metric)} & {_signed(a.mean_diff)} & '
                      f'{fmt_p(a.p)} & {_r_tex(a.r)} & {_signed(b.mean_diff)} & {fmt_p(b.p)} & '
                      f'{_r_tex(b.r)} \\\\')
@@ -260,11 +320,13 @@ def report(rows):
     """Plain-text report of every comparison and metric."""
     lines = []
     for a, b in COMPARISONS:
-        if not any(r['method'] == b for r in rows) or not any(r['method'] == a for r in rows):
+        if not has(rows, a) or not has(rows, b):
             continue
         lines.append(f'{a} vs {b}')
         for metric in METRICS:
             t = across_lawns(rows, a, b, metric)
+            if math.isnan(t.mean_diff):  # a CSV from before this column
+                continue
             lines.append(f'  {metric:18s} across lawns: mean diff {t.mean_diff:+7.2f} %  '
                          f'p {fmt_p(t.p):>9s}  r {_r(t.r):>5s}  n {t.n}')
         lines.append('  energy per lawn (Holm):')

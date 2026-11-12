@@ -8,11 +8,13 @@ when they touch one-to-one; a split or merge of the sweep line's connectivity
 union of a chain of pieces, and every vertical line meets it in one segment.
 """
 
+import shapely
 from shapely.geometry import MultiPolygon, Polygon, box
 from shapely.ops import unary_union
 
 MIN_AREA = 1e-9    # m^2, smaller pieces are slivers from rounding
 MIN_CONTACT = 1e-9  # m, pieces that share less of a slab edge do not touch
+GRID = 1e-9        # m, vertex coordinates are snapped to this grid
 
 
 def polygons(geom):
@@ -24,8 +26,17 @@ def polygons(geom):
 
 
 def boustrophedon_cells(area):
-    """Split area (Polygon or MultiPolygon) into BCD cells, ordered by min x."""
-    xs = sorted({round(x, 9) for p in polygons(area) for ring in [p.exterior, *p.interiors]
+    """Split area (Polygon or MultiPolygon) into BCD cells, ordered by min x.
+
+    The vertices are first snapped to a grid, so that the two ends of a
+    vertical edge have exactly the same x and every slab boundary passes
+    exactly through its vertices. Without this, a slab boundary a rounding
+    error away from an obstacle's edge leaves a sliver that joins the pieces
+    above and below the obstacle, and they end up in one cell that the lanes
+    cannot cover.
+    """
+    area = shapely.set_precision(area, GRID)
+    xs = sorted({x for p in polygons(area) for ring in [p.exterior, *p.interiors]
                  for x, _ in ring.coords})
     _, ymin, _, ymax = area.bounds
     slabs = [polygons(area.intersection(box(x0, ymin - 1, x1, ymax + 1)))
