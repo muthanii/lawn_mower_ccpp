@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.10.0...v1.11.0) (2026-11-12)
+
+
+### Features
+
+* **planning:** choose the decomposition direction by energy and fix merged BCD cells ([#36](https://github.com/muthanii/lawn_mower_ccpp/issues/36)) ([54a1ffa](https://github.com/muthanii/lawn_mower_ccpp/commit/54a1ffabcc93a934e59ee7da3a41bca4bea2eaf6))
+
 ## [1.10.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.9.0...v1.10.0) (2026-11-02)
 
 
