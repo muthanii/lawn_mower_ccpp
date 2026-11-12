@@ -36,6 +36,25 @@ def test_bcd_cells():
             assert len(getattr(cut, 'geoms', [cut])) == 1, 'a vertical line meets a cell once'
 
 
+def test_bcd_splits_at_an_edge_whose_x_is_not_a_round_number():
+    """An obstacle edge a rounding error from a slab boundary still starts new cells.
+
+    The beds are from a random lawn on which the cells above and below a bed
+    were joined into one cell, so the lanes left a part of the lawn out.
+    """
+    beds = [box(12.671770707560109, 4.2150303563032026, 15.282136429588556, 7.001970377628751),
+            box(18.0369169981593, 4.922419305336799, 22.97912859756301, 9.80739088632816),
+            box(15.693188728276859, 13.318568633162727, 19.278956518056923, 16.69657628181894)]
+    lawn = box(0, 0, 30, 20)
+    for bed in beds:
+        lawn = lawn.difference(bed)
+    free = lawn.buffer(-0.25, join_style='mitre')
+    cells = boustrophedon_cells(free)
+    assert len(cells) == 10  # 3 per bed and the cell on the left
+    assert all(monotone(c) and not c.interiors for c in cells)
+    assert sum(c.area for c in cells) == pytest.approx(free.area)
+
+
 def test_lanes_cover_the_cell_and_stay_inside():
     below_diamond = next(c for c in boustrophedon_cells(LAWN) if c.bounds[0] == 11)
     lanes = lane_segments(box(0, 0, 3, 5), 0.5)

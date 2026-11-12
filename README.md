@@ -96,7 +96,7 @@ All robot parameters live in one config file, `src/lawn_mower_robot/config/robot
 
 ## Planning
 
-`src/lawn_mower_planning` plans the coverage path: BCD cells, lanes, A* transitions and the transition table that all cell-ordering methods share. It has our energy-ordering GA and PSO, the Xie et al. (2024) HGACO baseline and the experiment runner. See [`src/lawn_mower_planning/README.md`](src/lawn_mower_planning/README.md).
+`src/lawn_mower_planning` plans the coverage path: BCD cells, lanes, A* transitions and the transition table that all cell-ordering methods share. It has our method (the decomposition direction chosen by energy, and the energy-ordering GA and PSO), the Xie et al. (2024) HGACO baseline and the experiment runner. See [`src/lawn_mower_planning/README.md`](src/lawn_mower_planning/README.md).
 
 ## Paper
 

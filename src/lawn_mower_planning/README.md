@@ -1,6 +1,6 @@
 # lawn_mower_planning
 
-The coverage planner and its cell ordering. The pipeline splits the lawn into cells (BCD), covers each cell with back-and-forth lanes and joins the cells with A* paths. An ordering method then decides the order in which the cells are visited. The package has the parts that every ordering method shares, and the Xie et al. (2024) HGACO baseline (issue #21).
+The coverage planner and its cell ordering. The pipeline splits the lawn into cells (BCD), covers each cell with back-and-forth lanes and joins the cells with A* paths. An ordering method then decides the order in which the cells are visited. Our method also chooses the direction of the decomposition by energy. The package has the parts that every ordering method shares, and the Xie et al. (2024) HGACO baseline (issue #21).
 
 | Module | Content |
 | --- | --- |
@@ -11,11 +11,12 @@ The coverage planner and its cell ordering. The pipeline splits the lawn into ce
 | `path_cost.py` | Length, turn count and energy of a polyline. Energy comes from the `lawn_mower_robot` skid-steer model. |
 | `transitions.py` | `TransitionTable`, the precomputed table that every ordering method reads. Also the exact variant decoder (`best_variants`) and `Plan`. |
 | `brute_force.py` | Exact orderings (plans and closed tours) by trying every permutation, for maps of up to 9 cells. Used for sanity checks. |
-| `maps.py` | The shared test lawns: 10 lawns with 7 to 15 cells each. |
+| `maps.py` | The shared test lawns: 10 lawns with 7 to 13 cells each. |
 | `experiment.py` | The experiment runner: every method on every lawn and seed, one CSV row per run. |
 | `analysis.py` | Significance tests and the LaTeX result tables for the paper. |
 | `tuning.py` | The tuning protocol: the same tuning effort for every method, on separate tuning lawns. |
-| `energy_order.py` | Our method: GA or PSO that orders the cells by modelled energy. |
+| `energy_order.py` | Our method, the ordering: GA or PSO that orders the cells by modelled energy. |
+| `direction.py` | Our method, the decomposition: the BCD direction with the least modelled energy, from the directions of the lawn's edges. |
 | `operators.py`, `search.py` | Permutation operators, and the evaluation budget and result shared by the searches. |
 | `xie_ga_aco.py` | Re-implementation of the Xie et al. (2024) HGACO ordering, the main baseline, and a length-and-turns ablation. |
 
@@ -34,7 +35,7 @@ problem.table          # TransitionTable with length, turns and energy
 ```
 
 1. **Free area.** The lawn shrinks by `clearance` (default `width / 2`), so that the robot centre stays that far from the edges and obstacles.
-2. **Cells.** BCD with a sweep line along the lanes. `lane_angle` sets the lane heading in the world frame (default: along y). The geometry is computed in a frame where the lanes are vertical, and `path` turns it back.
+2. **Cells.** BCD with a sweep line along the lanes. `lane_angle` sets the lane heading in the world frame (default: along y). The geometry is computed in a frame where the lanes are vertical, and `path` turns it back. The vertices are snapped to a 1 nm grid first, so that every slab boundary passes exactly through its vertices (see [Decomposition fix](#decomposition-fix)).
 3. **Lanes.** A cell `w` wide gets `ceil(w / width)` lanes, spread evenly. The robot changes lane along a straight line, or along the cell boundary where the straight line would leave the cell. Each cell can sweep at any angle in `sweep_angles` (radians, counterclockwise from the BCD direction; default `(0,)`, which gives every cell the same vertical lanes). The variants are the sweep angles times the 4 start corners: variant `a` is angle `a // 4` and corner `a % 4`. A cell that a turned lane would cross more than once cannot be swept back and forth in one piece, so that angle gets `inf` for that cell. Angle 0 is always usable, because BCD cells are monotone along the sweep line.
 4. **Transitions.** A* on the visibility graph, from the exit of each `(cell, variant)` to the entry of every other one, and from the robot start.
 5. **Metrics.** The robot drives each straight from rest and turns in place at each vertex. One vertex with a heading change of more than 1° is one turn, so a lane change counts 2. The same rule applies inside cells, on transitions and at the junctions between them, including the turn into and out of each lane. So the turn count of a plan equals the turn count of its assembled path (tested). Energy is the sum of `SkidSteerEnergyModel.straight` and `.turn` over the segments and turns, at the robot's maximum linear and angular speed.
@@ -63,7 +64,7 @@ For a fixed cell order, `best_variants` finds the best variant of each cell exac
 
 ## Test lawns
 
-`maps.shared_lawns()` returns the lawns that every method runs on. The lawns are polygons in metres with obstacle holes, and each has a robot start pose. With the default 0.5 m cutting width each lawn gives 6 to 15 cells (`test/test_maps.py` checks this).
+`maps.shared_lawns()` returns the lawns that every method runs on. The lawns are polygons in metres with obstacle holes, and each has a robot start pose. With the default 0.5 m cutting width each lawn gives 7 to 13 cells on the default decomposition (`test/test_maps.py` checks the agreed range of 6 to 15).
 
 | Lawn | Cells | Area (m²) | Content |
 | --- | --- | --- | --- |
@@ -74,11 +75,17 @@ For a fixed cell order, `best_variants` finds the best variant of each cell exac
 | `garden` | 10 | 689 | Irregular boundary, a tree, a triangular bed and a pond. |
 | `park_trees` | 13 | 975 | Large rectangle, four round trees. |
 | `sports_edge` | 13 | 1273 | Large rectangle, beds and a tree spread out. |
-| `random_1` | 10 | 551 | 4 random obstacles (seed 1). |
-| `random_2` | 15 | 542 | 5 random obstacles (seed 2). |
+| `random_1` | 10 | 576 | 3 random obstacles (seed 1). |
+| `random_2` | 10 | 583 | 3 random obstacles (seed 2). |
 | `random_3` | 7 | 591 | 2 random obstacles (seed 3). |
 
 Round obstacles are octagons. `random_lawn(seed)` places seeded random beds and trees at least 2 m apart, and draws again until the lawn has 6 to 15 cells. The same seed always gives the same lawn.
+
+### Decomposition fix
+
+Up to v1.10.0 the BCD rounded the slab boundaries to 9 decimals but not the polygon. An obstacle edge whose x is not a round number then started a rounding error after its slab boundary, and the sliver in between joined the cells above and below the obstacle into one cell. The lanes cover only one part of such a cell, so a part of the lawn was left out. This happened on the three random lawns only (4, 4 and 1 cells). Coverage on `random_1` and `random_2` was about 91 % for every method, and it is about 96 % now. The hand-made lawns have round coordinates and are unchanged.
+
+The fix snaps the polygon to the same grid. It also changes which draw of `random_lawn` first has 6 to 15 cells, so `random_1`, `random_2` and several tuning lawns are now different lawns from those of v1.10.0. Results on the random lawns from before the fix (`paper/data/ordering-pioneer3at.csv` and `ordering-pioneer3at-angles.csv`) are not comparable with the new ones.
 
 ## Experiments
 
@@ -99,21 +106,25 @@ The runner builds each lawn once, with length, turns and energy from the robot c
 | `--xie-population`, `--xie-ants`, `--xie-ga-share` | 400, 100, 0.5 | Xie et al.'s HGACO. |
 | `--width` | 0.5 | Cutting width and lane spacing [m]. |
 | `--sweep-angles` | 0 45 90 135 | Lane angles each cell may use [deg from the BCD direction]. Must include 0. `--sweep-angles 0` gives the fixed vertical lanes of v1.9.0. The analysis refuses a CSV that mixes angle sets. |
+| `--directions` | 8 | Candidate decomposition directions for `energy_direction_ga` and `xie2024_direction`, the default direction included. |
+| `--screen-evaluations` | 500 | Evaluated orders to score one candidate direction. |
 | `--out` | `results.csv` | CSV file. New rows are appended. |
 
 Methods:
 
 | Method | What it is |
 | --- | --- |
-| `energy_ga` | Our method, with the GA. |
-| `energy_pso` | Our method, with the PSO. |
-| `xie2024` | The baseline: Xie et al.'s HGACO tour over cell centroids, with nearest-corner bridging. |
+| `energy_direction_ga` | Our full method: the decomposition direction chosen by energy, then the GA order. The choice is paid from the budget. |
+| `energy_ga` | Our ordering alone, with the GA, on the default decomposition. |
+| `energy_pso` | Our ordering alone, with the PSO, on the default decomposition. |
+| `xie2024` | The baseline: Xie et al.'s HGACO tour over cell centroids, with nearest-corner bridging, on the default decomposition. |
+| `xie2024_direction` | Ablation: the baseline's ordering on our chosen decomposition. It gets the direction for free, on top of its full budget. |
 | `xie_length_turns` | Ablation: the same HGACO, minimising length + turns on the shared table. |
 | `energy_optimal` | Reference: the exact energy-optimal plan by brute force. It runs once per lawn (it does not depend on the seed), and only on lawns with up to 8 cells. |
 
 To add a method, register a function `(problem, settings, seed) -> RunResult` in `experiment.METHODS`. `settings.budgeted(params)` gives the method its parameters with the shared budget.
 
-CSV columns: `map`, `cells`, `method`, `seed`, `budget`, `robot`, `width`, `sweep_angles` (degrees, space-separated), `cost` (the method's own objective), `length` [m], `turns`, `energy` [J], `energy_wh`, `connection_length` (path outside the cells: start link and A* transitions [m]), `coverage` [%], `overlap` [%], `seconds`, `evaluations`, `ga_evaluations`, `order`, `variants`.
+CSV columns: `map`, `cells` (of the decomposition the method planned on), `method`, `seed`, `budget`, `robot`, `width`, `sweep_angles` (degrees, space-separated), `lane_angle` (world heading of the decomposition's lanes [deg]; 90 is the default), `cost` (the method's own objective), `length` [m], `turns`, `energy` [J], `energy_wh`, `energy_per_area` (energy per mowed square metre [J/m²]: energy / (coverage × lawn area)), `connection_length` (path outside the cells: start link and A* transitions [m]), `coverage` [%], `overlap` [%], `seconds` (with the time of the direction choice, for the two methods that use it), `evaluations` (with those of the direction choice, for `energy_direction_ga`), `ga_evaluations`, `direction_evaluations`, `order`, `variants`.
 
 ## Our method: energy-ordered cells
 
@@ -129,24 +140,55 @@ Both searches minimise the modelled skid-steer energy of the whole plan: the cov
 | Search | Encoding and operators | Defaults |
 | --- | --- | --- |
 | GA (`energy_ga_order`) | Cell permutation. Tournament selection (3), ordered crossover (OX), inversion mutation, elitism (2). A child that duplicates a member of the new generation is mutated again (up to 10 times), which keeps the population diverse. | population 50, crossover 0.9, mutation 0.3 |
-| PSO (`energy_pso_order`) | Random keys: a particle is a vector of n keys in [0, 1], and the cell order is `argsort(keys)`. Clerc–Kennedy constriction (inertia 0.7298, c₁ = c₂ = 1.49618), velocity clamped to ±0.5, ring topology (each particle follows the best of itself and its two neighbours). A particle whose own best has not improved for 20 moves is drawn again. | 60 particles |
+| PSO (`energy_pso_order`) | Random keys: a particle is a vector of n keys in [0, 1], and the cell order is `argsort(keys)`. Clerc–Kennedy constriction (inertia 0.7298, c₁ = c₂ = 1.49618), velocity clamped to ±1.0, ring topology (each particle follows the best of itself and its two neighbours). A particle whose own best has not improved for 20 moves is drawn again. | 60 particles |
 
 **Tuning.** See [Tuning](#tuning): every method was tuned with the same protocol. The diversity rules (no duplicates in the GA, ring and restarts in the PSO) were added during development, because without them both searches stalled after a few hundred evaluations. That early work also used four of the 7-cell test lawns. The final settings come only from the separate tuning lawns.
 
 **Sanity checks** (`test/test_energy_order.py`). With 2000 evaluations (against 7! = 5040 for brute force), the GA finds the exact energy optimum on five synthetic 7-cell tables. The PSO stays within 1 % of the optimum on the same tables.
 
+## Our method: energy-chosen decomposition direction
+
+```python
+from lawn_mower_planning.direction import choose_direction
+
+choice = choose_direction(lawn, width=0.5, path_cost=cost, start=(1, 1, 0), sweep_angles=angles)
+choice.problem       # the CoverageProblem of the chosen direction
+choice.lane_angle    # its lane heading [rad]
+choice.scores        # the screening energy of every candidate
+choice.evaluations   # evaluated orders the choice cost
+```
+
+The ordering can only change the connections between the cells, which are a few percent of the energy. The direction of the decomposition fixes the cells and the number of lanes, and so most of the turns. A point turn is expensive for a skid-steer robot: one 90° turn costs as much as 3.3 m of straight driving with the Pioneer 3-AT placeholder, and turns are about 30 % of the modelled energy on the default decomposition. So `energy_direction_ga` also chooses the direction by energy:
+
+1. **Candidates.** The lane headings parallel to an edge of the lawn boundary or of an obstacle. A sweep that needs the fewest lanes for a convex polygon is parallel to one of its edges (Huang, 2001). The candidates are ranked by the total length of their edges and the first 8 are kept (`--directions`). The default heading (along y) is always one of them.
+2. **Score.** Each candidate is decomposed, and a short GA run (500 evaluations, seed 0, `--screen-evaluations`) gives its energy.
+3. **Choice.** The candidate with the least energy. The GA then orders the cells of that decomposition with the rest of the budget.
+
+The choice is deterministic for a lawn. Its evaluations (500 per candidate, so 1000 to 4000 on the test lawns) come out of the method's 20000, and its time is in `seconds`.
+
+**What the comparison means.** Xie et al. do not search over the decomposition direction: their sub-regions come from extending the obstacle edges of an axis-aligned grid map. So `xie2024` stays on the default decomposition, and `energy_direction_ga` against `xie2024` compares the two complete methods. This difference has two parts, and the paper must report both:
+
+- `xie2024_direction` against `xie2024`: the direction alone, with their ordering.
+- `energy_direction_ga` against `xie2024_direction`: the ordering alone, on the same decomposition.
+
+The default lanes run along y, and most test lawns are wider than they are tall, so the default is the worse of the two axis directions on most of them. The gain of the direction depends on this, and a reader can object that a different default would shrink it. Report the ordering-only difference next to the full one, and say that the direction choice is not specific to our ordering: any method can use it.
+
+**Coverage.** The lanes end at the clearance band, so the band at the lane ends is not mowed, and a different direction leaves a different band. Coverage therefore changes a little with the direction. `energy_per_area` (energy per mowed square metre) corrects for this, and the tables report it next to the energy.
+
 ## Analysis
 
 ```bash
-ros2 run lawn_mower_planning analyze_results paper/data/ordering-pioneer3at.csv --tables paper/tables
+ros2 run lawn_mower_planning analyze_results paper/data/ordering-pioneer3at-direction.csv --tables paper/tables
 ```
 
 `analyze_results` reads the experiment CSV, prints every test and writes two LaTeX tables, which `paper/sections/results.tex` includes:
 
 | File | Content |
 | --- | --- |
-| `paper/tables/ordering-energy.tex` | Energy per lawn and method (mean ± SD over the seeds), the difference of our GA to Xie et al. and its p-value per lawn, and the test across lawns. |
-| `paper/tables/ordering-metrics.tex` | Energy, length, turns, connection length, coverage and planning time: our GA against Xie et al. and against the length-and-turns ablation. |
+| `paper/tables/ordering-energy.tex` | Energy per lawn and method (mean ± SD over the seeds), the difference of our method to Xie et al. and its p-value per lawn, and the test across lawns. |
+| `paper/tables/ordering-metrics.tex` | Energy, energy per mowed area, length, turns, connection length, coverage, overlap and planning time: our method against Xie et al., and against Xie et al.'s ordering on our chosen decomposition. |
+
+"Our method" in the tables is `energy_direction_ga` when the CSV has it. For a CSV without it, the tables compare `energy_ga` with Xie et al. and with the length-and-turns ablation, as in v1.10.0. The printed report has every comparison either way.
 
 The tests:
 
@@ -157,7 +199,20 @@ The tests:
 - **Ties.** Pairs with no difference are left out (Wilcoxon's method). A lawn where all pairs tie gets no test (shown as "--").
 - **Reference.** The exact optimum is deterministic, so it is reported but not tested.
 
-The analysis refuses a CSV that mixes robots. Analyse one robot at a time, and regenerate the tables after every run. The CSV behind the current tables is `paper/data/ordering-pioneer3at.csv`: the Pioneer 3-AT placeholder, so the tables are pipeline checks until the faculty robot runs replace them.
+The analysis refuses a CSV that mixes robots. Analyse one robot at a time, and regenerate the tables after every run. The CSV behind the current tables is `paper/data/ordering-pioneer3at-direction.csv`: the Pioneer 3-AT placeholder, so the tables are pipeline checks until the faculty robot runs replace them.
+
+Results with the placeholder (10 lawns, 10 seeds, 20000 evaluations, sweep angles 0 45 90 135), as the mean over the lawns of the relative difference. Every difference in energy has p = 0.002 across the lawns and r = −1.00:
+
+| Comparison | What differs | Energy | Energy per mowed area |
+| --- | --- | --- | --- |
+| `energy_direction_ga` against `xie2024` | Direction and ordering: the two complete methods | −10.30 % | −9.60 % |
+| `xie2024_direction` against `xie2024` | Direction alone, with Xie et al.'s ordering | −7.28 % | −6.82 % |
+| `energy_direction_ga` against `xie2024_direction` | Ordering alone, on our decomposition | −3.26 % | −2.99 % |
+| `energy_ga` against `xie2024` | Ordering alone, on the default decomposition | −1.97 % | −1.61 % |
+
+The full method has 24 % fewer turns than Xie et al., 0.8 % less coverage (95.1 % against 95.9 %) and takes 2.4 times as long to plan (5.7 s against 2.4 s), because it decomposes the lawn once per candidate direction. The direction choice picked lanes along x on all 10 lawns. All 10 are wider than they are tall, so the lawns do not yet test a case where the default direction is the better one.
+
+The two older CSVs in `paper/data/` (`ordering-pioneer3at.csv`: fixed vertical lanes; `ordering-pioneer3at-angles.csv`: sweep angles) are from before the [decomposition fix](#decomposition-fix).
 
 
 ```bash
@@ -175,17 +230,19 @@ Results (runs at the optimum, of 60):
 
 | Method | Settings tried (runs at the optimum) | Chosen |
 | --- | --- | --- |
-| `energy_ga` | pop 50 mut 0.5 (56), pop 100 mut 0.5 (48), pop 50 mut 0.3 (56), pop 100 mut 0.3 (50), pop 30 mut 0.5 (55) | pop 50, mutation 0.3 (lower mean gap than mutation 0.5) |
-| `energy_pso` | 60 particles v 0.5 (40), 40 v 0.5 (33), 20 v 0.5 (33), 60 v 0.2 (29), 60 v 1.0 (33) | 60 particles, max velocity 0.5 |
+| `energy_ga` | pop 50 mut 0.5 (48), pop 100 mut 0.5 (48), pop 50 mut 0.3 (54), pop 100 mut 0.3 (50), pop 30 mut 0.5 (51) | pop 50, mutation 0.3 |
+| `energy_pso` | 60 particles v 0.5 (33), 40 v 0.5 (31), 20 v 0.5 (25), 60 v 0.2 (24), 60 v 1.0 (34) | 60 particles, max velocity 1.0 |
 | `xie2024` | All five settings: 60 | The paper's settings (pop 400, 100 ants, GA share 0.5), by the tie rule |
-| `xie_length_turns` | Paper (47), pop 100 ants 50 share 0.5 (51), pop 50 ants 25 (46), pop 100 ants 50 share 0.3 (53), share 0.7 (48) | pop 100, 50 ants, GA share 0.3 |
+| `xie_length_turns` | Paper (41), pop 100 ants 50 share 0.5 (40), pop 50 ants 25 (39), pop 100 ants 50 share 0.3 (38), share 0.7 (38) | The paper's settings |
+
+These numbers are from the tuning lawns after the [decomposition fix](#decomposition-fix), which changed several of them. The choices for `energy_ga` and `xie2024` are the same as before the fix. The PSO's maximum velocity went from 0.5 to 1.0, and the ablation went from pop 100, 50 ants, GA share 0.3 back to the paper's settings.
 
 The chosen settings are the defaults: in `EnergyGaParams` and `EnergyPsoParams`, in `XieGaAcoParams` (the paper's settings) for `xie2024`, and in `experiment.TUNED_LENGTH_TURNS` for the ablation.
 
 Notes for the paper:
 
 - The centroid tour of a 6–7-cell lawn is easy: every `xie2024` setting finds it in every run, so tuning cannot separate the settings, and the paper's settings stay.
-- The PSO is the weakest search on its own objective (40 of 60). Report `energy_ga` as the main form of our method, and the PSO as a variant.
+- The PSO is the weakest search on its own objective (34 of 60). Report `energy_ga` as the main form of our method, and the PSO as a variant.
 - Tuning ran at budgets of 1000 and 2000, below the 20000 of the experiments, so the searches are tuned for a tight budget.
 
 ## Xie et al. (2024) HGACO baseline

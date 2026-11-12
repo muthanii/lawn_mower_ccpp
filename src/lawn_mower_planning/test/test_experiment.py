@@ -49,6 +49,42 @@ def test_energy_optimal_is_the_least_energy(tmp_path):
     assert best['energy_wh'] == pytest.approx(best['energy'] / 3600)
 
 
+def test_chosen_direction_methods(tmp_path):
+    from lawn_mower_robot.robot_config import load_robot_config, resolve_robot_config
+    cost = PathCost.from_config(load_robot_config(resolve_robot_config('pioneer3at')))
+    settings = Settings(300, PARAMS.xie, PARAMS.ga, PARAMS.pso, directions=2,
+                        screen_evaluations=50)
+    methods = ['energy_ga', 'xie2024', 'energy_direction_ga', 'xie2024_direction']
+    logs = []
+    rows = run([lawn_by_name('two_beds')], methods, [0, 1], settings, cost, 'pioneer3at', 0.5,
+               log=logs.append)
+    by = {m: [r for r in rows if r['method'] == m] for m in methods}
+    assert all(len(v) == 2 for v in by.values())
+    # two_beds is wider than it is tall, so the energy choice turns the lanes along x.
+    assert any('direction: lanes at 0 deg' in line for line in logs)
+    assert all(r['lane_angle'] == 90 for m in ('energy_ga', 'xie2024') for r in by[m])
+    assert all(r['lane_angle'] == 0 for m in methods[2:] for r in by[m])
+    # Our method pays for the choice (2 directions x 50) from the shared budget.
+    assert all(r['direction_evaluations'] == 100 and r['evaluations'] == 300
+               for r in by['energy_direction_ga'])
+    assert all(r['direction_evaluations'] == 0 and r['evaluations'] == 300
+               for m in methods if m != 'energy_direction_ga' for r in by[m])
+    for seed in (0, 1):
+        assert by['energy_direction_ga'][seed]['energy'] < by['energy_ga'][seed]['energy']
+        assert by['xie2024_direction'][seed]['energy'] < by['xie2024'][seed]['energy']
+    lawn_area = lawn_by_name('two_beds').area.area
+    for r in rows:
+        assert r['energy_per_area'] == pytest.approx(
+            r['energy'] / (r['coverage'] / 100 * lawn_area))
+    # A budget that the choice would use up skips our method, and no energy model skips both.
+    tight = Settings(100, PARAMS.xie, PARAMS.ga, PARAMS.pso, directions=2, screen_evaluations=50)
+    rows = run([lawn_by_name('two_beds')], methods[2:], [0], tight, cost, 'pioneer3at', 0.5,
+               log=lambda s: None)
+    assert [r['method'] for r in rows] == ['xie2024_direction']
+    assert run([lawn_by_name('two_beds')], methods[2:], [0], settings, PathCost(), 'none', 0.5,
+               log=lambda s: None) == []
+
+
 def test_connection_length_is_outside_the_cells():
     lawn = lawn_by_name('two_beds')
     problem = build_problem(lawn.area, 0.5, start=lawn.start)

@@ -67,7 +67,7 @@ class EnergyPsoParams:
     inertia: float = CLERC_INERTIA
     cognitive: float = CLERC_ACCELERATION   # pull to the particle's own best
     social: float = CLERC_ACCELERATION      # pull to the swarm's best
-    max_velocity: float = 0.5      # per key, keys live in [0, 1]
+    max_velocity: float = 1.0      # per key, keys live in [0, 1]
     neighbours: int = 1            # ring topology: particles i - k .. i + k; 0 = global best
     restart: int = 20              # re-draw a particle whose own best has not improved for this
                                    # many of its moves; 0 = never

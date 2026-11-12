@@ -67,6 +67,35 @@ def test_tables_and_report():
     assert 'energy_ga vs xie2024' in text and 'lawn_b' in text
 
 
+def direction_rows():
+    """fake_rows plus our full method (10 % below Xie et al.) and Xie et al. on our direction."""
+    rows = fake_rows()
+    for r in [r for r in rows if r['method'] == 'xie2024']:
+        for method, factor in (('energy_direction_ga', 0.90), ('xie2024_direction', 0.93)):
+            v = float(r['energy']) * factor
+            rows.append(dict(r, method=method, energy=str(v), length=str(v / 10),
+                             connection_length=str(v / 100)))
+    return rows
+
+
+def test_tables_compare_the_full_method_when_it_ran():
+    rows = direction_rows()
+    assert analysis.main_method(fake_rows()) == 'energy_ga'
+    assert analysis.main_method(rows) == 'energy_direction_ga'
+    energy = analysis.energy_table(rows, 'pioneer3at')
+    assert 'Ours & Ours, order only & Order only, PSO & Xie et al. & Xie et al., our dir.' in energy
+    assert '0.97 & $-10.00$' in energy  # the difference is now the full method's
+    metrics = analysis.metrics_table(rows, 'pioneer3at')
+    assert 'same dir.' in metrics and 'L+T' not in metrics
+    # Against Xie et al.: -10 %. Against their ordering on our direction: 0.90 / 0.93 - 1.
+    assert 'Energy (kJ) & 1.36 & 1.51 & $-10.00$' in metrics
+    assert f'${100 * (0.90 / 0.93 - 1):+.2f}$' in metrics
+    text = analysis.report(rows)
+    for pair in ('energy_direction_ga vs xie2024', 'energy_direction_ga vs xie2024_direction',
+                 'xie2024_direction vs xie2024', 'energy_ga vs xie2024'):
+        assert pair in text
+
+
 def test_command_line(tmp_path, capsys):
     path = tmp_path / 'results.csv'
     with open(path, 'w', newline='', encoding='utf-8') as f:
