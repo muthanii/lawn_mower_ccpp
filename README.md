@@ -92,11 +92,24 @@ rosdep install --from-paths src --ignore-src -y
 
 ## Robot
 
-All robot parameters live in one config file, `src/lawn_mower_robot/config/robot/<robot>.yaml`. The planner, energy model, controller and Gazebo launch read it, so you select a robot with a launch argument, for example `robot:=pioneer3at`. The Pioneer 3-AT is a placeholder until the faculty robot is measured. See [`src/lawn_mower_robot/README.md`](src/lawn_mower_robot/README.md).
+All robot parameters live in one config file, `src/lawn_mower_robot/config/robot/<robot>.yaml`. The planner, energy model, controller and Gazebo launch read it, so you select a robot with a launch argument, for example `robot:=pioneer3at`. The Pioneer 3-AT is a placeholder until the faculty robot is measured. `faculty_robot_estimate` has the size of the faculty robot, with estimates for the values that are not measured. See [`src/lawn_mower_robot/README.md`](src/lawn_mower_robot/README.md).
 
 ## Planning
 
 `src/lawn_mower_planning` plans the coverage path: BCD cells, lanes, A* transitions and the transition table that all cell-ordering methods share. It has our method (the decomposition direction chosen by energy, and the energy-ordering GA and PSO), the Xie et al. (2024) HGACO baseline and the experiment runner. See [`src/lawn_mower_planning/README.md`](src/lawn_mower_planning/README.md).
+
+## Autonomy and simulation
+
+The faculty robot is driven by radio control. Two packages make it autonomous in simulation:
+
+- `src/lawn_mower_electronics` models the electronics: the radio receiver, the controller that the retrofit adds, the motor driver, the blade, the battery monitor, and the GNSS receiver and IMU. See [`src/lawn_mower_electronics/README.md`](src/lawn_mower_electronics/README.md).
+- `src/lawn_mower_navigation` has the localisation, the fuzzy path tracker, the coverage mission and the Gazebo launch. See [`src/lawn_mower_navigation/README.md`](src/lawn_mower_navigation/README.md).
+
+Mow the demo lawn in Gazebo:
+
+```bash
+ros2 launch lawn_mower_navigation coverage_sim.launch.py
+```
 
 ## Paper
 
