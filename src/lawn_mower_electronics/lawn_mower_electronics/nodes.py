@@ -222,6 +222,10 @@ def main(args=None):
         executor.spin()
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
+    except Exception:
+        # A callback that was already queued can fail while the context shuts down.
+        if rclpy.ok():
+            raise
     finally:
         for node in nodes:
             node.destroy_node()

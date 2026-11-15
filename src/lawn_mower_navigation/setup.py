@@ -26,6 +26,7 @@ setup(
             'mission = lawn_mower_navigation.mission_node:main',
             'evaluator = lawn_mower_navigation.evaluator_node:main',
             'lawn_world = lawn_mower_navigation.world:main',
+            'safety_check = lawn_mower_navigation.safety_check:main',
         ],
     },
 )
