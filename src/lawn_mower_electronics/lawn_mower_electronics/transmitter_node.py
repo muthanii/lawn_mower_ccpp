@@ -14,6 +14,7 @@ blade that many seconds after the first clock tick.
 """
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from rcl_interfaces.msg import SetParametersResult
 from std_msgs.msg import UInt16MultiArray
 
@@ -84,7 +85,7 @@ def main(args=None):
     node = TransmitterNode()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()

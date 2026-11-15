@@ -5,8 +5,20 @@ lawn_mower_robot.sdf_model.build_sdf). world_sdf gives the world plugins and
 the geographic origin that the sensors need.
 """
 
+import math
+
 IMU_TOPIC = '/imu'
 GNSS_TOPIC = '/navsat'
+EARTH_RADIUS = 6371000.0  # m, mean
+
+
+def metres_to_degrees(distance):
+    """Angle [deg] that a distance [m] spans on the Earth's surface.
+
+    Gazebo adds the horizontal GNSS noise to the latitude and longitude in
+    degrees. The east error in metres is this times cos(latitude).
+    """
+    return math.degrees(distance / EARTH_RADIUS)
 
 
 def _noise(stddev):
@@ -34,7 +46,7 @@ def sensors_sdf(electronics):
         <topic>{GNSS_TOPIC}</topic>
         <navsat>
           <position_sensing>
-            <horizontal>{_noise(gnss.horizontal_stddev)}</horizontal>
+            <horizontal>{_noise(metres_to_degrees(gnss.horizontal_stddev))}</horizontal>
             <vertical>{_noise(gnss.vertical_stddev)}</vertical>
           </position_sensing>
         </navsat>

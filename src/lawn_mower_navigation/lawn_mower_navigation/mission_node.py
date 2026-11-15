@@ -10,6 +10,7 @@ goes on from where the robot is when automatic mode returns.
 """
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from geometry_msgs.msg import PoseStamped, Twist
 from nav_msgs.msg import Odometry, Path
 from rclpy.node import Node
@@ -71,6 +72,8 @@ class MissionNode(Node):
 
         self.tracker = PathTracker(m.segments, params)
         self.pose = None
+        self.yaw_rate = 0.0
+        self.last_step = None
         self.state = None
         self.blade_running = False
         self.status = PLANNED
@@ -97,6 +100,7 @@ class MissionNode(Node):
     def on_pose(self, msg):
         p = msg.pose.pose
         self.pose = (p.position.x, p.position.y, yaw_of(p.orientation))
+        self.yaw_rate = msg.twist.twist.angular.z
 
     def on_state(self, msg):
         self.state = msg.data
@@ -118,10 +122,14 @@ class MissionNode(Node):
         if self.pose is None or self.state != AUTO:
             # Not ours to drive: send nothing, and turn onto the path again afterwards.
             self.tracker.hold()
+            self.last_step = None
             self.blade_pub.publish(Bool(data=False))
             self.set_status(WAITING if self.status in (PLANNED, WAITING) else PAUSED)
             return
-        cmd = self.tracker.update(self.pose, self.blade_running)
+        now = self.get_clock().now().nanoseconds * 1e-9
+        dt = 0.0 if self.last_step is None else now - self.last_step
+        self.last_step = now
+        cmd = self.tracker.update(self.pose, self.blade_running, self.yaw_rate, dt)
         twist = Twist()
         twist.linear.x, twist.angular.z = cmd.v, cmd.omega
         self.cmd_pub.publish(twist)
@@ -134,7 +142,7 @@ def main(args=None):
     node = MissionNode()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()

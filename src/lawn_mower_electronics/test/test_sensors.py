@@ -1,6 +1,10 @@
+import math
 import xml.etree.ElementTree as ET
 
-from lawn_mower_electronics.sensors import GNSS_TOPIC, IMU_TOPIC, sensors_sdf, world_sdf
+import pytest
+
+from lawn_mower_electronics.sensors import (EARTH_RADIUS, GNSS_TOPIC, IMU_TOPIC, sensors_sdf,
+                                            world_sdf)
 from lawn_mower_robot.sdf_model import build_sdf
 
 
@@ -12,7 +16,9 @@ def test_sensors_are_mounted_on_the_chassis(electronics, robot):
     assert sensors['navsat'].find('topic').text == GNSS_TOPIC
     assert float(sensors['navsat'].find('update_rate').text) == electronics.sensors.gnss.rate
     stddev = sensors['navsat'].find('navsat/position_sensing/horizontal/noise/stddev')
-    assert float(stddev.text) == electronics.sensors.gnss.horizontal_stddev
+    # Gazebo takes the horizontal noise in degrees: 1 m is about 9e-6 deg.
+    metres = math.radians(float(stddev.text)) * EARTH_RADIUS
+    assert metres == pytest.approx(electronics.sensors.gnss.horizontal_stddev, rel=1e-4)
 
 
 def test_model_without_sensors_is_unchanged(robot):

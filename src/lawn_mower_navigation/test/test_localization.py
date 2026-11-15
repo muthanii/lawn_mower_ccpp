@@ -3,7 +3,7 @@ import math
 import numpy as np
 import pytest
 
-from lawn_mower_navigation.localization import PoseFilter, wrap
+from lawn_mower_navigation.localization import PoseFilter, SpeedModel, wrap
 
 GNSS_STDDEV = 0.02
 DT = 0.01
@@ -64,3 +64,21 @@ def test_heading_stays_wrapped():
     filt = new_filter(heading=3.1)
     filt.predict(0.0, 1.0, 0.5)
     assert -math.pi <= filt.pose[2] <= math.pi
+
+
+def test_speed_model_ramps_at_the_acceleration_limit():
+    model = SpeedModel(time_constant=0.15, max_acceleration=0.5)
+    speeds = [model.update(0.6, DT) for _ in range(int(3.0 / DT))]
+    assert speeds[int(0.5 / DT)] <= 0.5 * (0.5 + 2 * DT)   # no faster than a t
+    assert speeds[-1] == pytest.approx(0.6, abs=1e-3)
+    assert all(b >= a for a, b in zip(speeds, speeds[1:]))
+    assert model.update(0.6, 0.0) == speeds[-1]
+
+
+def test_speed_model_brakes_too():
+    model = SpeedModel(time_constant=0.15, max_acceleration=0.5)
+    for _ in range(int(3.0 / DT)):
+        model.update(0.6, DT)
+    after = [model.update(0.0, DT) for _ in range(int(3.0 / DT))]
+    assert after[int(0.5 / DT)] >= 0.6 - 0.5 * (0.5 + 2 * DT)
+    assert after[-1] == pytest.approx(0.0, abs=1e-3)

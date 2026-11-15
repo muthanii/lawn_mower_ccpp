@@ -16,6 +16,29 @@ def wrap(angle):
     return math.atan2(math.sin(angle), math.cos(angle))
 
 
+class SpeedModel:
+    """Forward speed of the robot from the speed its motor driver is told to reach.
+
+    Without wheel encoders the speed is not measured. The driver's lag and the
+    acceleration limit of the drive are applied to the commanded speed, so the
+    estimate ramps as the robot does.
+    """
+
+    def __init__(self, time_constant, max_acceleration):
+        self.time_constant = time_constant        # s, lag of the motor driver
+        self.max_acceleration = max_acceleration  # m/s^2
+        self.lagged = 0.0
+        self.speed = 0.0
+
+    def update(self, target, dt):
+        """Advance by dt [s] towards the target speed [m/s]. Returns the speed."""
+        if dt > 0:
+            self.lagged += (target - self.lagged) * (1.0 - math.exp(-dt / self.time_constant))
+            step = self.max_acceleration * dt
+            self.speed += min(max(self.lagged - self.speed, -step), step)
+        return self.speed
+
+
 class PoseFilter:
 
     def __init__(self, speed_stddev, yaw_rate_stddev, heading_stddev):

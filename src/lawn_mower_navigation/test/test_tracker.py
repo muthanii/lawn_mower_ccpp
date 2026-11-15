@@ -3,7 +3,8 @@ import math
 import pytest
 
 from lawn_mower_navigation.localization import wrap
-from lawn_mower_navigation.tracker import ALIGN, DRIVE, PathTracker, Segment, TrackerParams
+from lawn_mower_navigation.tracker import (ALIGN, DRIVE, PathTracker, Segment, TrackerParams,
+                                           YawGain)
 from lawn_mower_robot.kinematics import SkidSteerKinematics
 
 DT = 0.05
@@ -13,17 +14,20 @@ LANES = [Segment((0, 0), (5, 0), True, True), Segment((5, 0), (5, 0.5), True, Tr
          Segment((5, 0.5), (0, 0.5), True, True)]
 
 
-def simulate(tracker, pose, robot, seconds=120.0, lag=0.15, blade=True):
-    """Kinematic robot with a first-order lag on the commanded velocities."""
+def simulate(tracker, pose, robot, seconds=180.0, lag=0.15, blade=True, yaw_gain=1.0):
+    """Kinematic robot with a first-order lag on the commanded velocities.
+
+    yaw_gain is how much faster the ground lets the robot turn than commanded.
+    """
     kin = SkidSteerKinematics.from_config(robot)
     v = w = 0.0
     trail = [pose]
     for _ in range(int(seconds / DT)):
-        cmd = tracker.update(pose, blade)
+        cmd = tracker.update(pose, blade, w, DT)
         if cmd.done:
             break
         v += (cmd.v - v) * DT / lag
-        w += (cmd.omega - w) * DT / lag
+        w += (yaw_gain * cmd.omega - w) * DT / lag
         pose = kin.integrate(pose, v, w, DT)
         trail.append(pose)
     return trail
@@ -40,6 +44,41 @@ def test_follows_two_lanes_and_stops_at_the_end(robot):
     assert tracker.done
     assert math.dist(trail[-1][:2], LANES[-1].end) < 0.06
     assert max(min(cross_track(p, s) for s in LANES) for p in trail) < 0.05
+
+
+@pytest.mark.parametrize('yaw_gain', [0.7, 1.5, 2.0])
+def test_follows_the_lanes_when_the_ground_changes_the_turn_rate(robot, yaw_gain):
+    tracker = PathTracker(LANES, PARAMS)
+    trail = simulate(tracker, (0.0, 0.0, 0.0), robot, yaw_gain=yaw_gain)
+    assert tracker.done
+    assert tracker.yaw_gain.value == pytest.approx(yaw_gain, rel=0.15)
+    assert max(min(cross_track(p, s) for s in LANES) for p in trail) < 0.06
+
+
+def test_turn_in_place_does_not_overshoot(robot):
+    tracker = PathTracker([Segment((0, 0), (0, 5), False)], PARAMS)
+    trail = simulate(tracker, (0.0, 0.0, 0.0), robot, seconds=8.0, yaw_gain=1.5)
+    assert max(p[2] for p in trail) < math.radians(90 + 3)
+
+
+def test_yaw_gain_learns_only_while_turning():
+    gain = YawGain()
+    for _ in range(200):
+        gain.update(0.0, 0.3, DT)        # pushed round with no command: nothing learned
+    assert gain.value == 1.0
+    for _ in range(200):
+        gain.update(0.4, 0.6, DT)
+    assert gain.value == pytest.approx(1.5, rel=0.02)
+    for _ in range(200):
+        gain.update(0.4, 40.0, DT)       # nonsense stays inside the limits
+    assert gain.value == gain.limits[1]
+
+
+def test_stops_at_the_end_of_a_short_segment_without_overshoot(robot):
+    hop = [Segment((0, 0), (0.5, 0), True, True)]
+    tracker = PathTracker(hop, PARAMS)
+    trail = simulate(tracker, (0.0, 0.0, 0.0), robot)
+    assert tracker.done and trail[-1][0] < 0.5 + 0.03
 
 
 def test_turns_in_place_before_driving(robot):

@@ -13,6 +13,7 @@ import math
 import os
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from nav_msgs.msg import Odometry, Path
 from rclpy.node import Node
 from sensor_msgs.msg import BatteryState
@@ -146,7 +147,7 @@ def main(args=None):
     try:
         while rclpy.ok() and not node.finished:
             rclpy.spin_once(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()

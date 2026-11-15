@@ -2,11 +2,13 @@
 
 The forward speed comes from the pulses the controller sends to the motor
 driver (speed_source:=pulses), because the robot has no wheel encoders, or
-from wheel odometry (speed_source:=odometry). The first fix sets the position.
+from wheel odometry (speed_source:=odometry). The speed from the pulses goes
+through a model of the driver's lag and the drive's acceleration limit. The first fix sets the position.
 The first heading is the initial_heading parameter; driving corrects it.
 """
 
 import rclpy
+from rclpy.executors import ExternalShutdownException
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from sensor_msgs.msg import Imu, NavSatFix
@@ -21,13 +23,13 @@ from lawn_mower_robot.robot_config import load_robot_config, resolve_robot_confi
 
 from . import topics
 from .geo import to_local
-from .localization import PoseFilter
+from .localization import PoseFilter, SpeedModel
 from .ros_util import QOS_DEPTH, set_yaw, stamp_seconds
 from .world import DEFAULT_LATITUDE, DEFAULT_LONGITUDE
 
 SPEED_SOURCES = ('pulses', 'odometry')
-DEFAULT_SPEED_STDDEV = 0.2          # m/s, error of the speed taken from the pulses
-DEFAULT_YAW_RATE_STDDEV = 0.02      # rad/s, gyro noise and drift
+DEFAULT_SPEED_STDDEV = 0.1          # m/s, error of the speed taken from the pulses
+DEFAULT_YAW_RATE_STDDEV = 0.01      # rad/s, gyro noise and drift
 DEFAULT_HEADING_STDDEV = 0.3        # rad, error of initial_heading
 
 
@@ -54,6 +56,10 @@ class LocalizationNode(Node):
 
         self.kin = SkidSteerKinematics.from_config(robot)
         self.driver = MotorDriver(electronics, robot.drive.wheel_max_speed)
+        self.speed_model = SpeedModel(electronics.motor_driver.time_constant,
+                                      robot.limits.max_linear_acceleration)
+        self.from_pulses = source == 'pulses'
+        self.target_speed = 0.0
         self.speed = 0.0
         self.last_imu = None
         self.pub = self.create_publisher(Odometry, topics.POSE, QOS_DEPTH)
@@ -67,7 +73,7 @@ class LocalizationNode(Node):
 
     def on_pulses(self, msg):
         left, right = (self.driver.target(p) for p in msg.data[:2])
-        self.speed, _ = self.kin.forward(left, right)
+        self.target_speed, _ = self.kin.forward(left, right)
 
     def on_wheel_odom(self, msg):
         self.speed = msg.twist.twist.linear.x
@@ -84,7 +90,10 @@ class LocalizationNode(Node):
         t = stamp_seconds(msg.header.stamp)
         omega = msg.angular_velocity.z
         if self.last_imu is not None:
-            self.filter.predict(self.speed, omega, t - self.last_imu)
+            dt = t - self.last_imu
+            if self.from_pulses:
+                self.speed = self.speed_model.update(self.target_speed, dt)
+            self.filter.predict(self.speed, omega, dt)
         self.last_imu = t
         if not self.filter.ready:
             return
@@ -105,7 +114,7 @@ def main(args=None):
     node = LocalizationNode()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         node.destroy_node()

@@ -40,7 +40,10 @@ ARGUMENTS = (
     ('speed_fraction', '0.5', 'Driving speed as a fraction of the robot limits'),
     ('speed_source', 'pulses', 'Speed for localisation: pulses or odometry'),
     ('auto_after', '3.0', 'Seconds before the operator switches to automatic mode'),
-    ('real_time_factor', '0', 'Simulation speed, 0 for as fast as possible'),
+    ('clearance', '-1', 'Distance the robot centre keeps from edges and obstacles [m]; '
+                        '-1 for the radius the body sweeps in a turn plus a margin'),
+    ('real_time_factor', '1', 'Simulation speed. Above about 3 the message delays, which '
+                              'stay the same in real time, start to disturb the control'),
     ('headless', 'false', 'Run the Gazebo server without the GUI'),
     ('results_dir', 'mission_results', 'Folder for mission.csv and trajectory.csv'),
 )
@@ -96,7 +99,9 @@ def launch_setup(context):
                               origin_longitude=DEFAULT_LONGITUDE)]),
         Node(package='lawn_mower_navigation', executable='mission', output='screen',
              parameters=[dict(run, budget=int(arg['budget']),
-                              speed_fraction=float(arg['speed_fraction']))]),
+                              speed_fraction=float(arg['speed_fraction']),
+                              **({'clearance': float(arg['clearance'])}
+                                 if float(arg['clearance']) >= 0 else {}))]),
         evaluator,
         RegisterEventHandler(OnProcessExit(target_action=evaluator,
                                            on_exit=[EmitEvent(event=Shutdown())])),

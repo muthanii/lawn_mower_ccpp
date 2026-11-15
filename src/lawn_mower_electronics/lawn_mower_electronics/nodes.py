@@ -11,7 +11,7 @@ the controller board, the driver node by the L-faster, and so on.
 import rclpy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
-from rclpy.executors import SingleThreadedExecutor
+from rclpy.executors import ExternalShutdownException, SingleThreadedExecutor
 from rclpy.node import Node
 from sensor_msgs.msg import BatteryState
 from std_msgs.msg import Bool, Float64, Float64MultiArray, String, UInt16MultiArray
@@ -220,7 +220,7 @@ def main(args=None):
         executor.add_node(node)
     try:
         executor.spin()
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         for node in nodes:
