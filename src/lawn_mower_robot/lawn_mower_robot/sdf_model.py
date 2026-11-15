@@ -19,6 +19,9 @@ from .kinematics import SkidSteerKinematics
 # Gazebo physics has no continuous joint, so wheels are revolute without limits.
 UNLIMITED = 1e16
 
+CMD_VEL_TOPIC = '/cmd_vel'   # twist that Gazebo's DiffDrive follows
+ODOM_RATE = 50.0             # Hz, wheel and ground-truth odometry
+
 WHEELS = (('front_left', 1, 1), ('rear_left', -1, 1),
           ('front_right', 1, -1), ('rear_right', -1, -1))
 
@@ -82,8 +85,14 @@ def _mesh(uri):
     return f'<mesh><uri>{escape(uri)}</uri></mesh>'
 
 
-def build_sdf(cfg):
-    """Return the SDF model of the robot as a string."""
+def build_sdf(cfg, sensors='', cmd_vel_topic=CMD_VEL_TOPIC):
+    """Return the SDF model of the robot as a string.
+
+    sensors is SDF <sensor> XML to mount on the chassis (see
+    lawn_mower_electronics.sensors). cmd_vel_topic is the twist the drive
+    follows; the full simulation feeds it from the motor driver model instead
+    of from /cmd_vel directly.
+    """
     g = cfg.geometry
     t = cfg.terrain
     gz = cfg.gazebo
@@ -111,6 +120,7 @@ def build_sdf(cfg):
         <geometry><box><size>{g.body_length:.6g} {body_w:.6g} {body_h:.6g}</size></box></geometry>
       </collision>
       {chassis_visual}
+      {sensors}
     </link>"""]
 
     wheel_inertia = _cylinder_inertia(cfg.inertia.wheel_mass, g.wheel_radius, g.wheel_width)
@@ -161,8 +171,9 @@ def build_sdf(cfg):
       <min_linear_acceleration>{-lim.max_linear_acceleration:.6g}</min_linear_acceleration>
       <max_angular_acceleration>{lim.max_angular_acceleration:.6g}</max_angular_acceleration>
       <min_angular_acceleration>{-lim.max_angular_acceleration:.6g}</min_angular_acceleration>
-      <topic>/cmd_vel</topic>
+      <topic>{escape(cmd_vel_topic)}</topic>
       <odom_topic>/odom</odom_topic>
+      <odom_publish_frequency>{ODOM_RATE:g}</odom_publish_frequency>
       <frame_id>odom</frame_id>
       <child_frame_id>base_link</child_frame_id>
     </plugin>
@@ -170,6 +181,7 @@ def build_sdf(cfg):
       <odom_frame>world</odom_frame>
       <robot_base_frame>{escape(name)}</robot_base_frame>
       <odom_topic>/ground_truth/odom</odom_topic>
+      <odom_publish_frequency>{ODOM_RATE:g}</odom_publish_frequency>
       <dimensions>2</dimensions>
     </plugin>
     <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">

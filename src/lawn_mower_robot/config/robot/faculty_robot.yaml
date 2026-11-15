@@ -27,6 +27,8 @@
 #               expansion factor chi (commanded vs measured yaw rate),
 #               longitudinal slip s (commanded vs measured speed).
 #   electrical- idle power draw of computer, sensors and drivers (power meter).
+#   mower     - blade length tip to tip, and the blade motor's current while
+#               cutting (clamp meter).
 #   gazebo    - visual meshes if a CAD model exists, else null (box and cylinders).
 #
 # For every value, add a source key below (e.g. `measured` with the date and
@@ -104,6 +106,12 @@ parameters:
 
   electrical:
     auxiliary_power: {value: TODO, unit: W, source: measured}
+
+  mower:
+    cutting_width: {value: TODO, unit: m, source: measured,
+                    note: "Tip-to-tip length of the blade. About 0.5 from a photo"}
+    blade_power: {value: 500.0, unit: W, source: faculty_manuscript,
+                  note: "Rated power of the 24 V, 6000 rpm blade motor. Replace with the measured draw while cutting"}
 
   gazebo:
     model_name: {value: faculty_robot, source: measured}

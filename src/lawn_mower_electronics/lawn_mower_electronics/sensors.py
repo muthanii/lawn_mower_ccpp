@@ -1,0 +1,56 @@
+"""SDF of the sensors that the retrofit adds, for Gazebo.
+
+sensors_sdf gives the <sensor> elements to mount on the chassis (pass it to
+lawn_mower_robot.sdf_model.build_sdf). world_sdf gives the world plugins and
+the geographic origin that the sensors need.
+"""
+
+IMU_TOPIC = '/imu'
+GNSS_TOPIC = '/navsat'
+
+
+def _noise(stddev):
+    return f'<noise type="gaussian"><mean>0</mean><stddev>{stddev:.6g}</stddev></noise>'
+
+
+def sensors_sdf(electronics):
+    """IMU and GNSS receiver on the chassis link."""
+    gnss, imu = electronics.sensors.gnss, electronics.sensors.imu
+    gyro = ''.join(f'<{a}>{_noise(imu.gyro_stddev)}</{a}>' for a in 'xyz')
+    accel = ''.join(f'<{a}>{_noise(imu.accel_stddev)}</{a}>' for a in 'xyz')
+    return f"""
+      <sensor name="imu" type="imu">
+        <always_on>1</always_on>
+        <update_rate>{imu.rate:.6g}</update_rate>
+        <topic>{IMU_TOPIC}</topic>
+        <imu>
+          <angular_velocity>{gyro}</angular_velocity>
+          <linear_acceleration>{accel}</linear_acceleration>
+        </imu>
+      </sensor>
+      <sensor name="gnss" type="navsat">
+        <always_on>1</always_on>
+        <update_rate>{gnss.rate:.6g}</update_rate>
+        <topic>{GNSS_TOPIC}</topic>
+        <navsat>
+          <position_sensing>
+            <horizontal>{_noise(gnss.horizontal_stddev)}</horizontal>
+            <vertical>{_noise(gnss.vertical_stddev)}</vertical>
+          </position_sensing>
+        </navsat>
+      </sensor>"""
+
+
+def world_sdf(latitude, longitude, elevation=0.0):
+    """World plugins for the sensors, and the origin that maps x east, y north."""
+    return f"""
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-navsat-system" name="gz::sim::systems::NavSat"/>
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>{latitude:.9f}</latitude_deg>
+      <longitude_deg>{longitude:.9f}</longitude_deg>
+      <elevation>{elevation:.6g}</elevation>
+      <heading_deg>0</heading_deg>
+    </spherical_coordinates>"""

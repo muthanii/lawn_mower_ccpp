@@ -1,0 +1,63 @@
+# Electronics of the faculty robot, as the simulation models them.
+#
+# The radio values come from the Microzone 6C-MINI manual and the wiring from
+# the faculty's circuit diagram. The controller, the sensors and the battery
+# monitor are the parts that the autonomy retrofit adds; their values are
+# typical figures for that class of part, to be replaced when the parts are
+# chosen and tested.
+
+name: faculty_robot
+
+rc:
+  # Microzone 6C-MINI transmitter with the MC7RB-V2 receiver (manual).
+  frame_period: 0.02      # s, one frame every 20 ms
+  pulse_min: 1000         # us, stick fully one way (D/R switch at 100 %)
+  pulse_mid: 1500         # us, stick centred
+  pulse_max: 2000         # us
+  channel_count: 6
+  # Channel numbers start at 1, as printed on the receiver.
+  channels:
+    right: 1              # circuit diagram: CH1 -> right motors
+    left: 2               # circuit diagram: CH2 -> left motors
+    mode: 5               # free switch on the transmitter; high = automatic
+    blade: 6              # circuit diagram: CH6 -> blade activation
+  # What the receiver outputs when it loses the transmitter. The manual's
+  # factory values are 900 on CH3 and 1500 on the others. CH5 and CH6 are set
+  # low here, so a lost link selects manual mode and stops the blade; set the
+  # same values on the real transmitter (AIL + RUD keys, "Loss of control protection settings" in the manual).
+  failsafe: [1500, 1500, 900, 1500, 1000, 1000]
+  link_timeout: 0.5       # s without a frame before the receiver goes to failsafe
+
+controller:
+  # The real-time controller that the retrofit puts between the receiver and
+  # the motor driver.
+  rate: 50.0              # Hz
+  switch_high: 1700       # us, a switch channel above this is on
+  switch_low: 1300        # us, a switch channel below this is off
+  command_timeout: 0.5    # s without a velocity command before automatic mode stops
+
+motor_driver:
+  # L-faster dual-channel brushed driver, one RC pulse input per side.
+  deadband: 25            # us around pulse_mid with no output
+  time_constant: 0.15     # s, lag from command to wheel speed
+  signal_timeout: 0.5     # s without a pulse before the driver stops
+
+blade:
+  rated_speed: 6000.0     # rpm (faculty manuscript)
+  time_constant: 0.8      # s, spin-up and spin-down lag
+  running_fraction: 0.5   # fraction of rated_speed above which the blade cuts
+  idle_power_fraction: 0.3  # share of the cutting power drawn when not in grass
+
+battery:
+  internal_resistance: 0.02  # ohm, whole pack
+  cutoff_voltage: 20.0       # V, BMS low-voltage cut-off (8 cells at 2.5 V)
+
+sensors:
+  gnss:
+    rate: 10.0            # Hz
+    horizontal_stddev: 0.02  # m, RTK with a fixed solution
+    vertical_stddev: 0.04    # m
+  imu:
+    rate: 100.0           # Hz
+    gyro_stddev: 0.005    # rad/s
+    accel_stddev: 0.05    # m/s^2
