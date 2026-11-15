@@ -15,6 +15,7 @@ from shapely.geometry import LineString, Point, Polygon
 from shapely.ops import unary_union
 
 MIN_STEP = 0.02       # m between trajectory samples that are kept
+MIN_TURN = math.radians(2.0)  # heading change between samples that are kept
 FOOTPRINT_STEP = 0.10  # m between poses whose footprint is checked
 
 
@@ -30,12 +31,15 @@ class Sample:
 def thin(samples, step=MIN_STEP):
     """Drop samples closer than `step` to the last kept one.
 
-    A sample where the blade state changes is kept, and so is the last sample.
+    A sample is also kept when the heading has changed by MIN_TURN, so that a
+    turn in place is not lost, when the blade state changes, and at the end.
     """
     kept = []
     for s in samples:
         if (not kept or s.cutting != kept[-1].cutting
-                or math.hypot(s.x - kept[-1].x, s.y - kept[-1].y) >= step):
+                or math.hypot(s.x - kept[-1].x, s.y - kept[-1].y) >= step
+                or abs(math.atan2(math.sin(s.heading - kept[-1].heading),
+                                  math.cos(s.heading - kept[-1].heading))) >= MIN_TURN):
             kept.append(s)
     if samples and kept[-1] is not samples[-1]:
         kept.append(samples[-1])

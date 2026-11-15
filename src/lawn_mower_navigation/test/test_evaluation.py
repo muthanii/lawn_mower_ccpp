@@ -62,3 +62,11 @@ def test_thin_and_length():
     samples = line(2.0, 0.0, 10.0, step=0.001)
     assert len(thin(samples)) < len(samples) / 10
     assert path_length(thin(samples)) == pytest.approx(10.0, abs=0.05)
+
+
+def test_a_turn_in_place_is_kept_and_its_footprint_checked():
+    # 0.55 m from the edge: the body fits along the edge, but not across it.
+    turn = [Sample(i, 2.0, 0.55, math.radians(i), False) for i in range(91)]
+    assert len(thin(turn)) > 30
+    assert footprint_excursion(turn[:1], LAWN, 1.2, 1.0) == 0.0
+    assert footprint_excursion(turn, LAWN, 1.2, 1.0) == pytest.approx(0.23, abs=0.02)

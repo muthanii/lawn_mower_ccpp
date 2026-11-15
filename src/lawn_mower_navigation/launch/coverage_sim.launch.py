@@ -35,6 +35,7 @@ ARGUMENTS = (
     ('electronics', 'faculty_robot', 'Electronics config name or path'),
     ('lawn', 'demo', 'Lawn name: demo, or one of lawn_mower_planning.maps'),
     ('method', 'energy_ga', 'Cell ordering method of lawn_mower_planning'),
+    ('pattern', 'hybrid', 'hybrid: lanes, then contour passes along the edges; lanes: lanes only'),
     ('seed', '0', 'Seed of the ordering method'),
     ('budget', '0', 'Evaluated orders of the ordering method, 0 for its default'),
     ('speed_fraction', '0.5', 'Driving speed as a fraction of the robot limits'),
@@ -66,7 +67,8 @@ def launch_setup(context):
 
     common = {'use_sim_time': True, 'robot': arg['robot']}
     both = dict(common, electronics=arg['electronics'])
-    run = dict(common, lawn=arg['lawn'], method=arg['method'], seed=int(arg['seed']))
+    run = dict(common, lawn=arg['lawn'], method=arg['method'], seed=int(arg['seed']),
+               pattern=arg['pattern'])
     headless = arg['headless'].lower() == 'true'
     evaluator = Node(package='lawn_mower_navigation', executable='evaluator', output='screen',
                      parameters=[dict(run, results_dir=arg['results_dir'])])

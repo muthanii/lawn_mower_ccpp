@@ -32,7 +32,7 @@ from .ros_util import QOS_DEPTH, latched, stamp_seconds, yaw_of
 
 SETTLE_TIME = 2.0   # s after DONE, so the robot is at rest and the blade has stopped
 DIGITS = 4
-FIELDS = ['lawn', 'robot', 'method', 'seed', 'duration_s', 'distance_m', 'coverage_pct',
+FIELDS = ['lawn', 'robot', 'method', 'pattern', 'seed', 'duration_s', 'distance_m', 'coverage_pct',
           'overlap_pct', 'mowed_area_m2', 'lawn_area_m2', 'footprint_excursion_m',
           'tracking_mean_m', 'tracking_max_m', 'localization_mean_m', 'localization_max_m',
           'traction_wh', 'blade_wh', 'auxiliary_wh', 'total_wh', 'battery_pct']
@@ -47,6 +47,7 @@ class EvaluatorNode(Node):
         self.lawn = find_lawn(self.declare_parameter('lawn', 'demo').value)
         self.method = self.declare_parameter('method', '').value
         self.seed = self.declare_parameter('seed', 0).value
+        self.pattern = self.declare_parameter('pattern', '').value
         self.results_dir = os.path.expanduser(
             self.declare_parameter('results_dir', 'mission_results').value)
 
@@ -108,7 +109,7 @@ class EvaluatorNode(Node):
         traction, blade, auxiliary = (e / JOULES_PER_WH for e in self.energy)
         row = {
             'lawn': self.lawn.name, 'robot': self.robot.name, 'method': self.method,
-            'seed': self.seed,
+            'pattern': self.pattern, 'seed': self.seed,
             'duration_s': self.done_at - samples[0].t,
             'distance_m': path_length(samples),
             'coverage_pct': result['coverage'], 'overlap_pct': result['overlap'],

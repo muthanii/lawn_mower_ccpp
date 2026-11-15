@@ -1,7 +1,7 @@
 import math
 
 import pytest
-from shapely.geometry import box
+from shapely.geometry import LineString, box
 
 from lawn_mower_navigation.localization import wrap
 from lawn_mower_navigation.tracker import (ALIGN, DRIVE, PathTracker, Segment, TrackerParams,
@@ -165,11 +165,18 @@ def test_drives_back_to_where_it_left_the_lane(robot):
     assert math.hypot(back[0] - left_at, back[1]) < 0.06
 
 
-def test_lost_when_the_way_back_crosses_an_obstacle(robot):
-    free = box(-1, -1, 6, 4).difference(box(1, 1, 4, 2))
-    tracker = PathTracker(LANES, PARAMS, free)
+def test_lost_when_the_way_back_is_refused(robot):
+    obstacle = box(1, 1, 4, 2)
+    asked = []
+
+    def way_back(pose, target, final_heading):
+        asked.append((pose, target, final_heading))
+        return not LineString([pose[:2], target]).intersects(obstacle)
+
+    tracker = PathTracker(LANES, PARAMS, way_back)
     cmd = tracker.update((2.5, 3.0, 0.0))     # behind the obstacle, seen from lane 0
     assert tracker.lost and (cmd.v, cmd.omega, cmd.blade) == (0.0, 0.0, False)
+    assert asked[-1] == ((2.5, 3.0, 0.0), (0.0, 0.0), LANES[0].heading)
     cmd = tracker.update((0.2, 3.0, 0.0))     # driven round it by hand: a clear line now
     assert not tracker.lost and tracker.detour is not None
 

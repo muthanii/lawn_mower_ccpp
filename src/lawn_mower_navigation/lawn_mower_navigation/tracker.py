@@ -9,8 +9,8 @@ moves between cells.
 A segment is done only when the robot reaches its end along the segment. When
 the robot is far from the segment (it was driven away by hand, or the first
 position was wrong) the tracker drives straight back to the point where it
-left the segment, if that line is inside the free area. If it is not, the
-tracker stops and reports that it is lost.
+left the segment, if the body fits on that line and in the turns at both of
+its ends. If it does not, the tracker stops and reports that it is lost.
 
 A skid-steer robot does not turn at the rate it is told to: the ratio depends
 on the ground. YawGain learns that ratio from the gyro while the robot
@@ -19,8 +19,6 @@ drives, and the tracker divides its turn commands by it.
 
 import math
 from dataclasses import dataclass
-
-from shapely.geometry import LineString
 
 from .fuzzy import FuzzyTable
 from .localization import wrap
@@ -104,7 +102,6 @@ class TrackerParams:
     slow_angle: float = math.radians(20)     # heading error with the speed cut to slow_factor
     slow_factor: float = 0.4
     capture_distance: float = 0.6  # m from the segment within which the robot is on it
-    free_tolerance: float = 0.05   # m a way back may leave the free area by
 
 
 @dataclass(frozen=True)
@@ -117,12 +114,13 @@ class Command:
 
 class PathTracker:
 
-    def __init__(self, segments, params, free=None):
-        """free is the area the robot centre may use (a shapely polygon), or
-        None to allow any straight way back to the path."""
+    def __init__(self, segments, params, way_back=None):
+        """way_back(pose, target, final_heading) says whether the robot may turn
+        at its pose (x, y, heading), drive straight to target (x, y) and turn
+        there to final_heading. None allows every way back to the path."""
         self.segments = [s for s in segments if s.length > params.position_tolerance]
         self.params = params
-        self.free = None if free is None else free.buffer(params.free_tolerance)
+        self.way_back = way_back
         self.index = 0
         self.progress = 0.0   # m reached along the current segment
         self.detour = None    # Segment back to the path, while the robot is off it
@@ -190,8 +188,7 @@ class PathTracker:
         seg = self.segment
         c, s = math.cos(seg.heading), math.sin(seg.heading)
         target = (seg.start[0] + self.progress * c, seg.start[1] + self.progress * s)
-        line = LineString([pose[:2], target])
-        if self.free is not None and not self.free.covers(line):
+        if self.way_back is not None and not self.way_back(tuple(pose), target, seg.heading):
             return None
         return Segment(tuple(pose[:2]), target, False)
 

@@ -25,7 +25,8 @@ from lawn_mower_robot.robot_config import load_robot_config, resolve_robot_confi
 
 from . import topics
 from .lawns import find_lawn
-from .plan import DEFAULT_BLADE_OFF_MOVE, DEFAULT_METHOD, default_clearance, plan_mission
+from .plan import (DEFAULT_BLADE_OFF_MOVE, DEFAULT_METHOD, DEFAULT_PATTERN, default_clearance,
+                   plan_mission)
 from .ros_util import QOS_DEPTH, latched, yaw_of
 from .tracker import PathTracker, TrackerParams
 
@@ -51,6 +52,7 @@ class MissionNode(Node):
         fraction = self.declare_parameter('speed_fraction', DEFAULT_SPEED_FRACTION).value
         clearance = self.declare_parameter('clearance', default_clearance(robot)).value
         blade_off_move = self.declare_parameter('blade_off_move', DEFAULT_BLADE_OFF_MOVE).value
+        pattern = self.declare_parameter('pattern', DEFAULT_PATTERN).value
         rate = self.declare_parameter('rate', DEFAULT_RATE).value
         for name in robot.assumptions:
             self.get_logger().warning(f'{robot.name}: {name} is an assumption, not a measurement',
@@ -65,16 +67,16 @@ class MissionNode(Node):
         self.get_logger().info(f'Planning {lawn.name} with {method} for {robot.name} ...')
         self.mission = plan_mission(lawn, robot, method, seed, params.cruise_speed,
                                     params.turn_rate, clearance, budget or None,
-                                    blade_off_move=blade_off_move)
+                                    blade_off_move=blade_off_move, pattern=pattern)
         m, predicted = self.mission, self.mission.predicted
         self.get_logger().info(
-            f'Plan: {len(m.plan.order)} cells, {len(m.segments)} segments, '
+            f'Plan ({m.pattern}): {len(m.plan.order)} cells, {len(m.segments)} segments, '
             f'{predicted["length"]:.1f} m, {predicted["turns"]:.0f} turns, '
             f'{predicted.get("energy", 0.0) / 3600:.2f} Wh traction, '
             f'planned coverage {m.planned_coverage["coverage"]:.1f} %, '
             f'clearance {m.clearance:.2f} m, planned in {m.planning_seconds:.1f} s')
 
-        self.tracker = PathTracker(m.segments, params, m.free)
+        self.tracker = PathTracker(m.segments, params, m.way_back)
         self.pose = None
         self.yaw_rate = 0.0
         self.last_step = None
