@@ -9,7 +9,7 @@ The paper models the faculty robot. Until its measurements arrive, the **Pioneer
 | File | Robot |
 | --- | --- |
 | `config/robot/pioneer3at.yaml` | Pioneer 3-AT, with a source for every value. |
-| `config/robot/faculty_robot.yaml` | Faculty robot. A stub with `TODO` values. The header lists the measurements needed. |
+| `config/robot/faculty_robot.yaml` | Faculty robot. A stub: the frame drawing and the faculty manuscript fill some values, the rest are `TODO`. The header lists the measurements needed. |
 
 Each value has a `value`, a `unit` and a `source` key from the file's `sources` list:
 
