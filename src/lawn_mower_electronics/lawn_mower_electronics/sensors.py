@@ -9,6 +9,8 @@ import math
 
 IMU_TOPIC = '/imu'
 GNSS_TOPIC = '/navsat'
+CONTACT_TOPIC = '/bumper/contacts'
+CHASSIS_COLLISION = 'collision'   # name of the chassis collision in the robot model
 EARTH_RADIUS = 6371000.0  # m, mean
 
 
@@ -26,7 +28,11 @@ def _noise(stddev):
 
 
 def sensors_sdf(electronics):
-    """IMU and GNSS receiver on the chassis link."""
+    """IMU, GNSS receiver and bumper on the chassis link.
+
+    The bumper is a contact sensor on the chassis collision. The chassis does
+    not touch the ground, so every contact is an obstacle.
+    """
     gnss, imu = electronics.sensors.gnss, electronics.sensors.imu
     gyro = ''.join(f'<{a}>{_noise(imu.gyro_stddev)}</{a}>' for a in 'xyz')
     accel = ''.join(f'<{a}>{_noise(imu.accel_stddev)}</{a}>' for a in 'xyz')
@@ -50,6 +56,14 @@ def sensors_sdf(electronics):
             <vertical>{_noise(gnss.vertical_stddev)}</vertical>
           </position_sensing>
         </navsat>
+      </sensor>
+      <sensor name="bumper" type="contact">
+        <always_on>1</always_on>
+        <update_rate>{electronics.controller.rate:.6g}</update_rate>
+        <contact>
+          <collision>{CHASSIS_COLLISION}</collision>
+          <topic>{CONTACT_TOPIC}</topic>
+        </contact>
       </sensor>"""
 
 
@@ -58,6 +72,7 @@ def world_sdf(latitude, longitude, elevation=0.0):
     return f"""
     <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
     <plugin filename="gz-sim-navsat-system" name="gz::sim::systems::NavSat"/>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
     <spherical_coordinates>
       <surface_model>EARTH_WGS84</surface_model>
       <world_frame_orientation>ENU</world_frame_orientation>

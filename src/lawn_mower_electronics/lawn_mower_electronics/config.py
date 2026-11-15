@@ -17,6 +17,7 @@ KEYS = {
     'motor_driver': ('deadband', 'time_constant', 'signal_timeout'),
     'blade': ('rated_speed', 'time_constant', 'running_fraction', 'idle_power_fraction'),
     'battery': ('internal_resistance', 'cutoff_voltage'),
+    'bumper': ('hold_time',),
     'sensors': ('gnss', 'imu'),
 }
 CHANNELS = ('right', 'left', 'mode', 'blade')

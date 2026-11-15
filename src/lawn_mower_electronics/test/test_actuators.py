@@ -130,3 +130,13 @@ def test_driver_output_starts_from_zero_at_the_deadband_edge(driver, electronics
     for fraction in (-1.0, -0.3, 0.1, 0.7, 1.0):
         assert drive_fraction(drive_pulse(fraction, rc, deadband), rc, deadband) == \
             pytest.approx(fraction, abs=0.005)
+
+
+def test_bumper_holds_after_the_last_contact(electronics):
+    from lawn_mower_electronics.bumper import Bumper
+    hold = electronics.bumper.hold_time
+    bumper = Bumper(hold)
+    assert not bumper.pressed(0.0)
+    bumper.touch(1.0)
+    assert bumper.pressed(1.0) and bumper.pressed(1.0 + hold / 2)
+    assert not bumper.pressed(1.0 + 2 * hold)

@@ -20,7 +20,7 @@ The launch starts Gazebo with the lawn and the robot, the electronics models of 
 | `speed_fraction` | `0.5` | Driving speed as a fraction of the robot's limits. |
 | `clearance` | `-1` | Distance the robot centre keeps from edges and obstacles [m]. `-1` is the radius the body sweeps in a turn, plus 0.1 m. |
 | `speed_source` | `pulses` | Speed for the localisation: `pulses` (no encoders) or `odometry`. |
-| `real_time_factor` | `1` | Simulation speed. Above about 3, the message delays start to disturb the control. |
+| `real_time_factor` | `1` | Simulation speed. The runs below used 2 and 3. Without a limit (`0`, about 11 on a 4-core machine) the message delays, which stay the same in real time, disturbed the control. |
 | `headless` | `false` | Run without the Gazebo window. |
 | `results_dir` | `mission_results` | Folder for the results. |
 
@@ -51,10 +51,11 @@ The first heading is the `initial_heading` parameter. Driving corrects it. On th
 - A skid-steer robot does not turn at the rate it is told to. The tracker learns the ratio from the gyro and corrects its turn commands.
 - The blade is on along the lanes. It stays on over moves between cells shorter than 3 m, and is off on longer moves.
 - The robot waits for the blade to reach its speed before it enters a lane.
+- A segment is done only when the robot reaches its end along the segment. When the robot is more than 0.6 m from the segment, it drives straight back to the point where it left it.
 
 ### Mission
 
-`plan.py` calls the pipeline of `lawn_mower_planning` with the robot's cutting width. The mission pauses when the controller leaves automatic mode (operator takeover, lost radio link, emergency stop) and continues from where the robot is when automatic mode returns.
+`plan.py` calls the pipeline of `lawn_mower_planning` with the robot's cutting width. The mission pauses when the controller leaves automatic mode (operator takeover, lost radio link, emergency stop, bumper). When automatic mode returns, the robot drives back to the point where it left the path and continues. If the straight line back crosses an obstacle or leaves the lawn, the mission reports `LOST` and waits for the operator to drive the robot closer.
 
 ## Clearance and coverage
 
@@ -73,23 +74,34 @@ ros2 run lawn_mower_navigation safety_check --ros-args -p use_sim_time:=true
 
 The check takes over by radio, switches the transmitter off and presses the emergency stop. It prints one line for each step and exits with 1 if a step fails.
 
+The bumper scenario drives the robot into the flower bed of the demo lawn in manual mode. It checks that the bed stops the robot, that the bumper reports the contact, and that automatic mode does not start against the obstacle:
+
+```bash
+ros2 launch lawn_mower_navigation coverage_sim.launch.py headless:=true real_time_factor:=2 auto_after:=-1.0
+ros2 run lawn_mower_navigation safety_check --ros-args -p use_sim_time:=true -p scenario:=bumper
+```
+
 ## Reference run
 
-Demo lawn, `faculty_robot_estimate`, `energy_ga`, seed 0, `real_time_factor:=3`:
+`faculty_robot_estimate`, `energy_ga`, seed 0, headless, `real_time_factor:=3`. The demo run adds `budget:=300`; the `two_beds` run uses `lawn:=two_beds`.
 
-| Result | Value |
-| --- | --- |
-| Coverage, simulated and planned | 61.5 % and 61.5 % |
-| Duration and distance | 470 s and 157 m |
-| Tracking error, mean and largest | 0.02 m and 0.17 m |
-| Localisation error, mean and largest | 0.02 m and 0.07 m |
-| Body outside the lawn | 0.01 m |
-| Energy: traction, blade, auxiliary | 5.4 Wh, 59.7 Wh, 2.0 Wh |
+| Result | `demo` (12 m x 9 m, one bed) | `two_beds` (20 m x 12 m, two beds) |
+| --- | --- | --- |
+| Coverage, simulated and planned | 61.6 % and 61.5 % | 65.0 % and 63.8 % |
+| Duration and distance | 472 s and 158 m | 917 s and 332 m |
+| Tracking error, mean and largest | 0.02 m and 0.16 m | 0.01 m and 0.15 m |
+| Localisation error, mean and largest | 0.02 m and 0.07 m | 0.01 m and 0.07 m |
+| Body outside the lawn | 0.00 m | 0.00 m |
+| Energy: traction, blade, auxiliary | 5.4 Wh, 59.7 Wh, 2.0 Wh | 10.1 Wh, 120.4 Wh, 3.8 Wh |
+
+The simulated coverage can be above the planned one, because the blade stays on over short moves between cells.
 
 These numbers use the estimate config. They show that the simulation works. They are not results for the paper.
 
 ## Limits
 
-- The ground is flat, and the grass does not load the blade.
-- The robot does not sense obstacles. It stays clear of the obstacles in the lawn polygon.
+- The ground is flat. The grass is not simulated: the blade draws its full cutting power whenever it spins.
+- The robot senses an obstacle only when its bumper touches it. It has no lidar or camera. It stays clear of the obstacles in the lawn polygon.
+- The bumper covers the chassis, not the wheels, which stand out to the sides.
+- The simulation was run without the Gazebo window (`headless:=true`) only.
 - The electronics are behavioural models, not the firmware of the real parts.

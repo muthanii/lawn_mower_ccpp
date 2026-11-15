@@ -1,6 +1,7 @@
 import math
 
 import pytest
+from shapely.geometry import box
 
 from lawn_mower_navigation.localization import wrap
 from lawn_mower_navigation.tracker import (ALIGN, DRIVE, PathTracker, Segment, TrackerParams,
@@ -135,3 +136,45 @@ def test_a_large_heading_error_stops_and_turns(robot):
 def test_empty_path_is_done():
     cmd = PathTracker([], PARAMS).update((0.0, 0.0, 0.0))
     assert cmd.done and not cmd.blade
+
+
+def test_a_pose_far_from_the_path_does_not_finish_it(robot):
+    tracker = PathTracker(LANES, PARAMS)
+    for _ in range(50):
+        cmd = tracker.update((50.0, 80.0, 0.3))
+    assert not cmd.done and not tracker.done and tracker.index == 0
+
+
+def test_a_pose_past_the_end_of_a_lane_does_not_skip_it(robot):
+    tracker = PathTracker(LANES, PARAMS)
+    tracker.update((30.0, 0.0, 0.0))     # on the line of lane 0, 25 m beyond its end
+    assert tracker.index == 0 and tracker.detour is not None
+
+
+def test_drives_back_to_where_it_left_the_lane(robot):
+    tracker = PathTracker(LANES, PARAMS)
+    trail = simulate(tracker, (0.0, 0.0, 0.0), robot, seconds=5.0)
+    left_at = tracker.progress
+    assert 1.0 < left_at < 4.0
+    tracker.hold()
+    trail = simulate(tracker, (trail[-1][0] + 1.0, 2.5, 1.0), robot)   # moved away by hand
+    assert tracker.done
+    assert math.dist(trail[-1][:2], LANES[-1].end) < 0.06
+    # It came back onto lane 0 at the point it had reached, not further along.
+    back = min(trail, key=lambda p: math.hypot(p[0] - left_at, p[1]))
+    assert math.hypot(back[0] - left_at, back[1]) < 0.06
+
+
+def test_lost_when_the_way_back_crosses_an_obstacle(robot):
+    free = box(-1, -1, 6, 4).difference(box(1, 1, 4, 2))
+    tracker = PathTracker(LANES, PARAMS, free)
+    cmd = tracker.update((2.5, 3.0, 0.0))     # behind the obstacle, seen from lane 0
+    assert tracker.lost and (cmd.v, cmd.omega, cmd.blade) == (0.0, 0.0, False)
+    cmd = tracker.update((0.2, 3.0, 0.0))     # driven round it by hand: a clear line now
+    assert not tracker.lost and tracker.detour is not None
+
+
+def test_the_blade_is_off_on_the_way_back(robot):
+    tracker = PathTracker(LANES, PARAMS)
+    cmd = tracker.update((2.0, 3.0, 0.0), blade_running=False)
+    assert not cmd.blade and cmd.omega != 0

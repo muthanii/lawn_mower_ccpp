@@ -6,7 +6,10 @@ It plans once at start, publishes the path, and waits until the controller is
 in automatic mode and the pose is known. Then it sends velocity commands and
 the blade request to the controller. When the operator takes over, or the
 controller reports a failsafe or an emergency stop, the mission pauses, and it
-goes on from where the robot is when automatic mode returns.
+goes on when automatic mode returns: the robot drives back to the point where
+it left the path. If that straight line crosses an obstacle or leaves the
+lawn, the mission reports LOST and waits for the operator to drive the robot
+closer.
 """
 
 import rclpy
@@ -32,6 +35,7 @@ DECELERATION_FRACTION = 0.6    # of the robot's acceleration limits, so the ramp
 NO_BUDGET = 0
 
 PLANNED, WAITING, RUNNING, PAUSED, DONE = 'PLANNED', 'WAITING', 'RUNNING', 'PAUSED', 'DONE'
+LOST = 'LOST'   # off the path, with an obstacle or the lawn edge on the straight way back
 
 
 class MissionNode(Node):
@@ -70,7 +74,7 @@ class MissionNode(Node):
             f'planned coverage {m.planned_coverage["coverage"]:.1f} %, '
             f'clearance {m.clearance:.2f} m, planned in {m.planning_seconds:.1f} s')
 
-        self.tracker = PathTracker(m.segments, params)
+        self.tracker = PathTracker(m.segments, params, m.free)
         self.pose = None
         self.yaw_rate = 0.0
         self.last_step = None
@@ -134,7 +138,7 @@ class MissionNode(Node):
         twist.linear.x, twist.angular.z = cmd.v, cmd.omega
         self.cmd_pub.publish(twist)
         self.blade_pub.publish(Bool(data=cmd.blade))
-        self.set_status(DONE if cmd.done else RUNNING)
+        self.set_status(DONE if cmd.done else LOST if self.tracker.lost else RUNNING)
 
 
 def main(args=None):

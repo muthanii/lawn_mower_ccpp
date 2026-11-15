@@ -9,7 +9,9 @@ States, from the highest priority down:
 
     ESTOP     the emergency stop is pressed or latched: drive neutral, blade off.
               It stays latched until the stop is released and the mode switch
-              is put back to manual.
+              is put back to manual. The bumper latches the same stop, but
+              only in automatic mode, so the operator can switch to manual and
+              drive the robot off the obstacle.
     FAILSAFE  the receiver lost the transmitter: drive neutral, blade off. The
               robot does not drive itself without an operator in radio range.
     MANUAL    the mode switch is low: the sticks go straight to the driver and
@@ -73,7 +75,7 @@ class Controller:
         return tuple(drive_pulse(w / top, self.rc, self.deadband)
                      for w in self.kin.inverse(v, omega))
 
-    def step(self, t, channels, failsafe, estop):
+    def step(self, t, channels, failsafe, estop, bumper=False):
         """One control cycle at time t [s]. Returns the Outputs."""
         ch = self.rc.channels
         # A lost link is not a switch position: keep the switches where they were.
@@ -83,7 +85,7 @@ class Controller:
         else:
             auto, blade_allowed = self.mode.on, self.blade.on
 
-        if estop:
+        if estop or (bumper and auto):
             self.latched = True
         elif self.latched and not failsafe and not auto:
             self.latched = False

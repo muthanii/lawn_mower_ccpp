@@ -52,6 +52,11 @@ battery:
   internal_resistance: 0.02  # ohm, whole pack
   cutoff_voltage: 20.0       # V, BMS low-voltage cut-off (8 cells at 2.5 V)
 
+bumper:
+  # A contact strip round the body, added by the retrofit. It stops the robot
+  # in automatic mode; in manual mode the operator can still drive away.
+  hold_time: 0.2          # s the bumper stays pressed after the last contact report
+
 sensors:
   gnss:
     rate: 10.0            # Hz

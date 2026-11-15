@@ -11,6 +11,7 @@ RC_FAILSAFE = '/rc/failsafe'         # Bool, the receiver lost the transmitter
 CMD_VEL = '/cmd_vel'                 # Twist, companion -> controller
 BLADE_REQUEST = '/blade/request'     # Bool, companion -> controller
 ESTOP = '/estop'                     # Bool, emergency stop button pressed
+BUMPER = '/bumper'                   # Bool, the bumper touches something
 CONTROLLER_STATE = '/controller/state'  # String: MANUAL, AUTO, FAILSAFE or ESTOP
 PWM_DRIVE = '/pwm/drive'             # UInt16MultiArray [left, right], controller -> driver [us]
 BLADE_RELAY = '/blade/relay'         # Bool, controller -> blade relay

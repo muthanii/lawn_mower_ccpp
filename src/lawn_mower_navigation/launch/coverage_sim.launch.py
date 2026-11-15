@@ -24,7 +24,7 @@ from launch_ros.actions import Node
 
 from lawn_mower_electronics import topics as hw
 from lawn_mower_electronics.config import load_electronics_config, resolve_electronics_config
-from lawn_mower_electronics.sensors import GNSS_TOPIC, IMU_TOPIC, sensors_sdf
+from lawn_mower_electronics.sensors import CONTACT_TOPIC, GNSS_TOPIC, IMU_TOPIC, sensors_sdf
 from lawn_mower_navigation.lawns import find_lawn
 from lawn_mower_navigation.world import DEFAULT_LATITUDE, DEFAULT_LONGITUDE, lawn_world_sdf
 from lawn_mower_robot.robot_config import load_robot_config, resolve_robot_config
@@ -87,6 +87,7 @@ def launch_setup(context):
                  f'{hw.GROUND_TRUTH}@nav_msgs/msg/Odometry[gz.msgs.Odometry',
                  f'{IMU_TOPIC}@sensor_msgs/msg/Imu[gz.msgs.IMU',
                  f'{GNSS_TOPIC}@sensor_msgs/msg/NavSatFix[gz.msgs.NavSat',
+                 f'{CONTACT_TOPIC}@ros_gz_interfaces/msg/Contacts[gz.msgs.Contacts',
              ]),
         Node(package='lawn_mower_electronics', executable='electronics', output='screen',
              parameters=[both]),

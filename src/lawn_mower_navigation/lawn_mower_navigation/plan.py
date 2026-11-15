@@ -48,6 +48,11 @@ class Mission:
     planning_seconds: float
 
     @property
+    def free(self):
+        """World-frame area the robot centre may use: the lawn less the clearance."""
+        return self.lawn.area.buffer(-self.clearance, join_style='mitre')
+
+    @property
     def points(self):
         """World-frame waypoints of the path."""
         return [self.segments[0].start] + [s.end for s in self.segments] if self.segments else []

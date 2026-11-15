@@ -11,6 +11,7 @@ the controller board, the driver node by the L-faster, and so on.
 import rclpy
 from geometry_msgs.msg import Twist
 from nav_msgs.msg import Odometry
+from ros_gz_interfaces.msg import Contacts
 from rclpy.executors import ExternalShutdownException, SingleThreadedExecutor
 from rclpy.node import Node
 from sensor_msgs.msg import BatteryState
@@ -23,10 +24,12 @@ from lawn_mower_robot.robot_config import load_robot_config, resolve_robot_confi
 from . import topics
 from .battery import Battery, PowerMonitor
 from .blade import Blade
+from .bumper import Bumper
 from .config import load_electronics_config, resolve_electronics_config
 from .controller import Controller
 from .motor_driver import MotorDriver
 from .rc import Receiver
+from .sensors import CONTACT_TOPIC
 
 QOS_DEPTH = 10
 DEFAULT_ROBOT = 'faculty_robot_estimate'
@@ -70,6 +73,23 @@ class ReceiverNode(ModelNode):
         self.failsafe_pub.publish(Bool(data=failsafe))
 
 
+class BumperNode(ModelNode):
+
+    def __init__(self):
+        super().__init__('bumper')
+        self.model = Bumper(self.electronics.bumper.hold_time)
+        self.pub = self.create_publisher(Bool, topics.BUMPER, QOS_DEPTH)
+        self.create_subscription(Contacts, CONTACT_TOPIC, self.on_contacts, QOS_DEPTH)
+        self.create_timer(1.0 / self.electronics.controller.rate, self.step)
+
+    def on_contacts(self, msg):
+        if msg.contacts:
+            self.model.touch(self.now())
+
+    def step(self):
+        self.pub.publish(Bool(data=self.model.pressed(self.now())))
+
+
 class ControllerNode(ModelNode):
 
     def __init__(self):
@@ -78,6 +98,7 @@ class ControllerNode(ModelNode):
         self.channels = None
         self.failsafe = True
         self.estop = False
+        self.bumper = False
         self.state = None
         self.pwm_pub = self.create_publisher(UInt16MultiArray, topics.PWM_DRIVE, QOS_DEPTH)
         self.relay_pub = self.create_publisher(Bool, topics.BLADE_RELAY, QOS_DEPTH)
@@ -88,6 +109,8 @@ class ControllerNode(ModelNode):
         self.create_subscription(Bool, topics.BLADE_REQUEST,
                                  lambda m: self.model.set_blade_request(m.data), QOS_DEPTH)
         self.create_subscription(Bool, topics.ESTOP, self.on_estop, QOS_DEPTH)
+        self.create_subscription(Bool, topics.BUMPER,
+                                 lambda m: setattr(self, 'bumper', m.data), QOS_DEPTH)
         self.create_timer(1.0 / self.electronics.controller.rate, self.step)
 
     def on_channels(self, msg):
@@ -106,7 +129,7 @@ class ControllerNode(ModelNode):
         # No receiver output yet is the same as a lost link.
         channels = self.channels or list(self.electronics.rc.failsafe)
         out = self.model.step(self.now(), channels, self.failsafe or self.channels is None,
-                              self.estop)
+                              self.estop, self.bumper)
         self.pwm_pub.publish(UInt16MultiArray(data=[out.left, out.right]))
         self.relay_pub.publish(Bool(data=out.blade))
         self.state_pub.publish(String(data=out.state))
@@ -209,7 +232,7 @@ class PowerMonitorNode(ModelNode):
             for name in (PowerMonitor.TRACTION, PowerMonitor.BLADE, PowerMonitor.AUXILIARY)]))
 
 
-NODES = (ReceiverNode, ControllerNode, MotorDriverNode, BladeNode, PowerMonitorNode)
+NODES = (ReceiverNode, BumperNode, ControllerNode, MotorDriverNode, BladeNode, PowerMonitorNode)
 
 
 def main(args=None):

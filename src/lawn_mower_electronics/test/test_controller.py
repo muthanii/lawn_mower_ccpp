@@ -117,3 +117,28 @@ def test_small_commands_clear_the_driver_deadband(controller, electronics, kinem
     left, right = controller.twist_to_pulses(0.02, 0.0)
     assert driver.target(left) == pytest.approx(0.02 / kinematics.effective_wheel_radius, rel=0.2)
     assert controller.twist_to_pulses(0.0, 0.0) == (electronics.rc.pulse_mid,) * 2
+
+
+def test_bumper_stops_automatic_mode_and_latches(controller, electronics):
+    auto = frame(electronics, mode=2000, blade=2000)
+    controller.set_command(0.0, 0.5, 0.0)
+    controller.set_blade_request(True)
+    out = controller.step(0.0, auto, False, False, bumper=True)
+    assert out.state == ESTOP and neutral(out, electronics)
+    controller.set_command(0.02, 0.5, 0.0)
+    assert controller.step(0.02, auto, False, False, bumper=False).state == ESTOP
+
+
+def test_operator_can_drive_off_the_obstacle_in_manual(controller, electronics):
+    auto = frame(electronics, mode=2000)
+    controller.step(0.0, auto, False, False, bumper=True)
+    back = frame(electronics, mode=1000, left=1300, right=1300)
+    out = controller.step(0.02, back, False, False, bumper=True)    # still touching
+    assert (out.state, out.left, out.right) == (MANUAL, 1300, 1300)
+    controller.set_command(0.04, 0.5, 0.0)
+    assert controller.step(0.04, auto, False, False, bumper=False).state == AUTO
+
+
+def test_bumper_does_not_stop_manual_driving(controller, electronics):
+    out = controller.step(0.0, frame(electronics, left=1800, right=1800), False, False, bumper=True)
+    assert out.state == MANUAL and out.left == 1800

@@ -6,6 +6,12 @@ cross-track error and the heading error, and the speed ramps down before the
 end. The blade request follows the segment: on along the lanes, off on long
 moves between cells.
 
+A segment is done only when the robot reaches its end along the segment. When
+the robot is far from the segment (it was driven away by hand, or the first
+position was wrong) the tracker drives straight back to the point where it
+left the segment, if that line is inside the free area. If it is not, the
+tracker stops and reports that it is lost.
+
 A skid-steer robot does not turn at the rate it is told to: the ratio depends
 on the ground. YawGain learns that ratio from the gyro while the robot
 drives, and the tracker divides its turn commands by it.
@@ -13,6 +19,8 @@ drives, and the tracker divides its turn commands by it.
 
 import math
 from dataclasses import dataclass
+
+from shapely.geometry import LineString
 
 from .fuzzy import FuzzyTable
 from .localization import wrap
@@ -95,6 +103,8 @@ class TrackerParams:
     realign_angle: float = math.radians(30)  # heading error that stops and turns in place
     slow_angle: float = math.radians(20)     # heading error with the speed cut to slow_factor
     slow_factor: float = 0.4
+    capture_distance: float = 0.6  # m from the segment within which the robot is on it
+    free_tolerance: float = 0.05   # m a way back may leave the free area by
 
 
 @dataclass(frozen=True)
@@ -107,10 +117,16 @@ class Command:
 
 class PathTracker:
 
-    def __init__(self, segments, params):
+    def __init__(self, segments, params, free=None):
+        """free is the area the robot centre may use (a shapely polygon), or
+        None to allow any straight way back to the path."""
         self.segments = [s for s in segments if s.length > params.position_tolerance]
         self.params = params
+        self.free = None if free is None else free.buffer(params.free_tolerance)
         self.index = 0
+        self.progress = 0.0   # m reached along the current segment
+        self.detour = None    # Segment back to the path, while the robot is off it
+        self.lost = False     # off the path with no straight way back
         self.phase = ALIGN if self.segments else DONE
         self.steer = FuzzyTable(CROSS_TRACK_CENTRES, HEADING_CENTRES, steering_rules())
         self.yaw_gain = YawGain()
@@ -130,9 +146,10 @@ class PathTracker:
         if not self.done:
             self.phase = ALIGN
 
-    def errors(self, pose):
-        """(remaining distance, cross-track error, heading error) on the current segment."""
-        seg = self.segment
+    def errors(self, pose, seg=None):
+        """(remaining distance, cross-track error, heading error) on a segment
+        (the current one by default)."""
+        seg = seg or self.segment
         x, y, heading = pose
         c, s = math.cos(seg.heading), math.sin(seg.heading)
         dx, dy = x - seg.start[0], y - seg.start[1]
@@ -163,13 +180,43 @@ class PathTracker:
         rate = min(p.turn_rate, math.sqrt(2 * p.angular_deceleration * abs(heading_error)))
         return -math.copysign(max(rate, p.min_turn_rate), heading_error)
 
+    def _off(self, seg, remaining, cross):
+        """The robot is too far from the segment to count as driving it."""
+        reach = self.params.capture_distance
+        return abs(cross) > reach or remaining > seg.length + reach or remaining < -reach
+
+    def _way_back(self, pose):
+        """A segment from the robot to where it left the current segment, or None."""
+        seg = self.segment
+        c, s = math.cos(seg.heading), math.sin(seg.heading)
+        target = (seg.start[0] + self.progress * c, seg.start[1] + self.progress * s)
+        line = LineString([pose[:2], target])
+        if self.free is not None and not self.free.covers(line):
+            return None
+        return Segment(tuple(pose[:2]), target, False)
+
     def _command(self, pose, blade_running, yaw_rate):
         p = self.params
         while not self.done:
-            seg = self.segment
-            remaining, cross, heading_error = self.errors(pose)
+            seg = self.detour or self.segment
+            remaining, cross, heading_error = self.errors(pose, seg)
+            if self._off(seg, remaining, cross):
+                self.detour = self._way_back(pose)
+                self.lost = self.detour is None
+                self.phase = ALIGN
+                if self.lost:
+                    return Command(0.0, 0.0, False)
+                continue
+            self.lost = False
+            if self.detour is None:
+                self.progress = max(self.progress, min(max(seg.length - remaining, 0.0),
+                                                       seg.length))
             if remaining <= p.position_tolerance:
-                self.index += 1
+                if self.detour is not None:
+                    self.detour = None
+                else:
+                    self.index += 1
+                    self.progress = 0.0
                 self.phase = ALIGN if self.index < len(self.segments) else DONE
                 continue
             if self.phase == ALIGN:
