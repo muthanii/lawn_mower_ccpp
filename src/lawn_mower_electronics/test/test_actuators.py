@@ -121,3 +121,12 @@ def test_power_monitor_matches_the_energy_model(electronics, robot):
     assert traction == pytest.approx(expected.mechanical / expected.efficiency, rel=0.01)
     assert battery.energy[PowerMonitor.AUXILIARY] == pytest.approx(expected.auxiliary, rel=0.01)
     assert battery.energy[PowerMonitor.BLADE] == 0.0
+
+
+def test_driver_output_starts_from_zero_at_the_deadband_edge(driver, electronics, robot):
+    from lawn_mower_electronics.motor_driver import drive_fraction, drive_pulse
+    rc, deadband = electronics.rc, electronics.motor_driver.deadband
+    assert driver.target(rc.pulse_mid + deadband + 5) < 0.02 * robot.drive.wheel_max_speed
+    for fraction in (-1.0, -0.3, 0.1, 0.7, 1.0):
+        assert drive_fraction(drive_pulse(fraction, rc, deadband), rc, deadband) == \
+            pytest.approx(fraction, abs=0.005)

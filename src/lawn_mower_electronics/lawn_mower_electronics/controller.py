@@ -22,7 +22,8 @@ States, from the highest priority down:
 
 from dataclasses import dataclass
 
-from .rc import Switch, channel, unit_to_pulse
+from .motor_driver import drive_pulse
+from .rc import Switch, channel
 
 ESTOP = 'ESTOP'
 FAILSAFE = 'FAILSAFE'
@@ -43,6 +44,7 @@ class Controller:
     def __init__(self, electronics, kinematics):
         self.rc = electronics.rc
         self.cfg = electronics.controller
+        self.deadband = electronics.motor_driver.deadband
         self.kin = kinematics
         self.mode = Switch(self.cfg.switch_low, self.cfg.switch_high)
         self.blade = Switch(self.cfg.switch_low, self.cfg.switch_high)
@@ -61,11 +63,15 @@ class Controller:
         return Outputs(self.rc.pulse_mid, self.rc.pulse_mid, False, state)
 
     def twist_to_pulses(self, v, omega):
-        """Body velocity -> (left, right) pulses, full pulse = no-load wheel speed."""
+        """Body velocity -> (left, right) pulses, full pulse = no-load wheel speed.
+
+        The pulses skip the deadband of the motor driver, so a small command
+        still moves the wheels.
+        """
         v, omega = self.kin.saturate(v, omega)
-        left, right = self.kin.inverse(v, omega)
         top = self.kin.wheel_max_speed
-        return unit_to_pulse(left / top, self.rc), unit_to_pulse(right / top, self.rc)
+        return tuple(drive_pulse(w / top, self.rc, self.deadband)
+                     for w in self.kin.inverse(v, omega))
 
     def step(self, t, channels, failsafe, estop):
         """One control cycle at time t [s]. Returns the Outputs."""

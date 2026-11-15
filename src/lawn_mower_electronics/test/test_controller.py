@@ -1,7 +1,7 @@
 import pytest
 
 from lawn_mower_electronics.controller import AUTO, ESTOP, FAILSAFE, MANUAL, Controller
-from lawn_mower_electronics.rc import pulse_to_unit
+from lawn_mower_electronics.motor_driver import MotorDriver
 
 from conftest import frame
 
@@ -33,9 +33,8 @@ def test_auto_turns_a_velocity_command_into_pulses(controller, electronics, kine
     controller.set_command(0.0, v, omega)
     out = controller.step(0.0, frame(electronics, mode=2000), False, False)
     assert out.state == AUTO
-    top = kinematics.wheel_max_speed
-    left = pulse_to_unit(out.left, electronics.rc) * top
-    right = pulse_to_unit(out.right, electronics.rc) * top
+    driver = MotorDriver(electronics, kinematics.wheel_max_speed)
+    left, right = driver.target(out.left), driver.target(out.right)
     got_v, got_omega = kinematics.forward(left, right)
     assert got_v == pytest.approx(v, abs=0.01) and got_omega == pytest.approx(omega, abs=0.02)
 
@@ -111,3 +110,10 @@ def test_estop_beats_manual(controller, electronics):
 def test_commands_above_the_limits_are_scaled_not_clipped(controller, electronics, kinematics):
     left, right = controller.twist_to_pulses(10 * kinematics.max_linear_speed, 0.0)
     assert left == right <= electronics.rc.pulse_max
+
+
+def test_small_commands_clear_the_driver_deadband(controller, electronics, kinematics):
+    driver = MotorDriver(electronics, kinematics.wheel_max_speed)
+    left, right = controller.twist_to_pulses(0.02, 0.0)
+    assert driver.target(left) == pytest.approx(0.02 / kinematics.effective_wheel_radius, rel=0.2)
+    assert controller.twist_to_pulses(0.0, 0.0) == (electronics.rc.pulse_mid,) * 2
