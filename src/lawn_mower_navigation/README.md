@@ -16,7 +16,7 @@ The launch starts Gazebo with the lawn and the robot, the electronics models of 
 | `electronics` | `faculty_robot` | Electronics config. |
 | `lawn` | `demo` | `demo`, or a lawn of `lawn_mower_planning.maps`, for example `two_beds`. |
 | `method` | `energy_ga` | Cell ordering method of `lawn_mower_planning`. |
-| `seed`, `budget` | `0`, `0` | Seed and evaluation budget of the method. `0` is the method's default budget. |
+| `seed`, `budget` | `0`, `0` | Seed and evaluation budget of the method. `0` is the method's default budget. `energy_direction_ga` needs more than its direction choice uses. |
 | `speed_fraction` | `0.5` | Driving speed as a fraction of the robot's limits. |
 | `clearance` | `-1` | Distance the robot centre keeps from edges and obstacles [m]. `-1` is the radius the body sweeps in a turn, plus 0.1 m. |
 | `speed_source` | `pulses` | Speed for the localisation: `pulses` (no encoders) or `odometry`. |
@@ -56,6 +56,8 @@ The first heading is the `initial_heading` parameter. Driving corrects it. On th
 ### Mission
 
 `plan.py` calls the pipeline of `lawn_mower_planning` with the robot's cutting width. The mission pauses when the controller leaves automatic mode (operator takeover, lost radio link, emergency stop, bumper). When automatic mode returns, the robot drives back to the point where it left the path and continues. If the straight line back crosses an obstacle or leaves the lawn, the mission reports `LOST` and waits for the operator to drive the robot closer.
+
+Every method of `lawn_mower_planning` plans the demo lawn, and `energy_ga` plans every shared lawn at the default clearance. Only `demo` and `two_beds` were driven in Gazebo.
 
 ## Clearance and coverage
 

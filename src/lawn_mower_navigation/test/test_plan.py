@@ -4,6 +4,7 @@ import pytest
 from shapely.geometry import LineString
 
 from lawn_mower_navigation.lawns import DEMO, find_lawn
+from lawn_mower_planning.experiment import CHOSEN_DIRECTION, METHODS
 from lawn_mower_navigation.plan import (default_clearance, plan_mission, plan_segments,
                                         turning_radius)
 
@@ -69,3 +70,17 @@ def test_width_is_the_cutting_width(mission, robot):
 def test_unknown_method(robot):
     with pytest.raises(ValueError, match='unknown method'):
         plan_mission(DEMO, robot, method='magic')
+
+
+@pytest.mark.parametrize('method', sorted(METHODS))
+def test_every_method_plans_the_demo_lawn(robot, method):
+    # The methods that pay for the direction choice need more than it costs.
+    budget = None if CHOSEN_DIRECTION.get(method) else BUDGET
+    mission = plan_mission(DEMO, robot, method, budget=budget)
+    assert mission.method == method and mission.segments
+    assert mission.planned_coverage['coverage'] > 50
+
+
+def test_a_budget_below_the_direction_choice_is_refused(robot):
+    with pytest.raises(ValueError, match='larger budget'):
+        plan_mission(DEMO, robot, 'energy_direction_ga', budget=BUDGET)

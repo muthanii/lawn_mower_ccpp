@@ -134,6 +134,9 @@ def plan_mission(lawn, robot, method=DEFAULT_METHOD, seed=0, cruise_speed=None, 
                                   clearance=clearance, limit=settings.directions, screen=screen)
         problem = choice.problem
         spent = choice.evaluations if CHOSEN_DIRECTION[method] else 0
+        if spent >= settings.budget:
+            raise ValueError(f'the direction choice of {method} uses the whole budget '
+                             f'({spent} of {settings.budget} evaluations); use a larger budget')
         result = METHODS[method](problem, settings, seed, spent) if spent \
             else METHODS[method](problem, settings, seed)
     else:
