@@ -18,6 +18,8 @@ The coverage planner and its cell ordering. The pipeline splits the lawn into ce
 | `energy_order.py` | Our method, the ordering: GA or PSO that orders the cells by modelled energy. |
 | `direction.py` | Our method, the decomposition: the BCD direction with the least modelled energy, from the directions of the lawn's edges. |
 | `operators.py`, `search.py` | Permutation operators, and the evaluation budget and result shared by the searches. |
+| `footprint.py` | `BodyCheck`: does the robot's body fit on a straight run, and in a turn in place of a given angle? |
+| `contour.py` | Contour passes along the lawn edge and round the obstacles, for the hybrid pattern of `lawn_mower_navigation`. The experiments and the paper tables do not use them. |
 | `xie_ga_aco.py` | Re-implementation of the Xie et al. (2024) HGACO ordering, the main baseline, and a length-and-turns ablation. |
 
 ## Pipeline
