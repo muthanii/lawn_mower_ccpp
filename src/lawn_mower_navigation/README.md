@@ -62,9 +62,13 @@ Every method of `lawn_mower_planning` plans the demo lawn, and `energy_ga` plans
 
 ## Hybrid coverage pattern
 
+Liu et al. (2024) sort the complete coverage path planning of mower robots into three kinds: simple planning with one fixed pattern (reciprocating, inner spiral or outer spiral), optimal planning, and hybrid planning that combines them. This planner is hybrid in that sense. It combines two simple patterns, reciprocating lanes inside the lawn and nested contour passes along its edges, with an optimised order of the cells (`lawn_mower_planning`).
+
+> Liu, L., Liu, H., Wang, X., Li, J., Wang, P., Liu, S., Zou, J., & Yang, X. (2024). Application of path planning and tracking control technology in mower robots. *Agronomy*, 14(11), 2473. https://doi.org/10.3390/agronomy14112473
+
 The robot turns in place at each lane end, so the lanes stay where a full turn fits: the free area, 0.89 m from every edge and obstacle for the faculty robot estimate. The blade cuts 0.25 m to each side. Lanes alone thus leave a strip of about 0.64 m along every edge.
 
-The hybrid pattern (`pattern:=hybrid`, the default) drives the lanes first, and then contour passes that cut into that strip:
+The hybrid pattern (`pattern:=hybrid`, the default) drives the reciprocating lanes first, and then nested contour passes that cut into that strip:
 
 | Pass | Where the robot centre drives | Turns |
 | --- | --- | --- |
@@ -128,13 +132,13 @@ ros2 run lawn_mower_navigation safety_check --ros-args -p use_sim_time:=true -p 
 
 | Result | `demo`, lanes | `demo`, hybrid | `two_beds`, lanes | `two_beds`, hybrid |
 | --- | --- | --- | --- | --- |
-| Coverage, simulated | 61.6 % | 77.4 % | 65.0 % | not run yet |
+| Coverage, simulated | 61.6 % | 77.4 % | 65.0 % | 79.9 % |
 | Coverage, planned | 61.5 % | 77.2 % | 63.8 % | 79.6 % |
-| Duration | 472 s | 767 s | 917 s | not run yet |
-| Distance | 158 m | 267 m | 331 m | not run yet |
-| Tracking error, mean and largest | 0.02 m and 0.16 m | 0.02 m and 0.13 m | 0.01 m and 0.15 m | not run yet |
-| Body outside the lawn | 0.00 m | 0.01 m | 0.00 m | not run yet |
-| Energy: traction, blade, auxiliary | 5.4, 59.7, 2.0 Wh | 8.5, 97.6, 3.2 Wh | 10.1, 120.5, 3.8 Wh | not run yet |
+| Duration | 472 s | 767 s | 917 s | 1487 s |
+| Distance | 158 m | 267 m | 331 m | 569 m |
+| Tracking error, mean and largest | 0.02 m and 0.16 m | 0.02 m and 0.13 m | 0.01 m and 0.15 m | 0.01 m and 0.14 m |
+| Body outside the lawn | 0.00 m | 0.01 m | 0.00 m | 0.02 m |
+| Energy: traction, blade, auxiliary | 5.4, 59.7, 2.0 Wh | 8.5, 97.6, 3.2 Wh | 10.1, 120.5, 3.8 Wh | 16.1, 186.3, 6.2 Wh |
 
 The simulated coverage of a lanes run can be above the planned one, because the blade stays on over short moves between cells.
 
