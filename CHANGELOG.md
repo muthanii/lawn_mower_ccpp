@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.11.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.10.0...v1.11.0) (2026-11-17)
+
+
+### Features
+
+* **planning:** choose the decomposition direction by energy and fix merged BCD cells ([#36](https://github.com/muthanii/lawn_mower_ccpp/issues/36)) ([54a1ffa](https://github.com/muthanii/lawn_mower_ccpp/commit/54a1ffabcc93a934e59ee7da3a41bca4bea2eaf6))
+* simulate autonomous coverage for the faculty robot, electronics included ([#38](https://github.com/muthanii/lawn_mower_ccpp/issues/38)) ([b03185d](https://github.com/muthanii/lawn_mower_ccpp/commit/b03185dca513439feac184b1c1d9f0b117f0f40d))
+
 ## [1.10.0](https://github.com/muthanii/lawn_mower_ccpp/compare/v1.9.0...v1.10.0) (2026-11-02)
 
 
