@@ -22,6 +22,18 @@ The coverage planner and its cell ordering. The pipeline splits the lawn into ce
 | `contour.py` | Contour passes along the lawn edge and round the obstacles, for the hybrid pattern of `lawn_mower_navigation`. The experiments and the paper tables do not use them. |
 | `xie_ga_aco.py` | Re-implementation of the Xie et al. (2024) HGACO ordering, the main baseline, and a length-and-turns ablation. |
 
+## Hybrid coverage planning
+
+Liu et al. (2024, Section 2.3) describe hybrid complete coverage path planning in three stages. This package has them:
+
+1. Divide the area into sub-regions and cover each with a simple pattern: `decomposition.py` and `lanes.py` (reciprocating lanes in each BCD cell).
+2. Search for the best transfer order: `energy_order.py`, and the baseline in `xie_ga_aco.py`.
+3. Plan the transfer paths: `roadmap.py`.
+
+Every cell uses the reciprocating pattern. The review's Figure 5 also shows spiral patterns in some sub-regions; the pipeline does not choose a pattern for each cell. `contour.py` adds passes along the edges for `lawn_mower_navigation`, outside the experiments.
+
+> Liu, L., Liu, H., Wang, X., Li, J., Wang, P., Liu, S., Zou, J., & Yang, X. (2024). Application of path planning and tracking control technology in mower robots. *Agronomy*, 14(11), 2473. https://doi.org/10.3390/agronomy14112473
+
 ## Pipeline
 
 ```python

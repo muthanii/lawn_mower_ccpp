@@ -62,7 +62,21 @@ Every method of `lawn_mower_planning` plans the demo lawn, and `energy_ga` plans
 
 ## Hybrid coverage pattern
 
-Liu et al. (2024) sort the complete coverage path planning of mower robots into three kinds: simple planning with one fixed pattern (reciprocating, inner spiral or outer spiral), optimal planning, and hybrid planning that combines them. This planner is hybrid in that sense. It combines two simple patterns, reciprocating lanes inside the lawn and nested contour passes along its edges, with an optimised order of the cells (`lawn_mower_planning`).
+Liu et al. (2024, Section 2.3) describe hybrid complete coverage path planning for mower robots as three stages. The planner has all three:
+
+| Stage in Liu et al. | In this project |
+| --- | --- |
+| 1. Divide the area into sub-regions, and cover each with a simple pattern or an improved algorithm. | `lawn_mower_planning`: BCD cells (`decomposition.py`), each covered with reciprocating lanes (`lanes.py`). |
+| 2. Search for the best transfer order of the sub-regions. | `energy_order.py`: a GA or PSO orders the cells by modelled energy. |
+| 3. Plan the transfer paths between the sub-regions. | `roadmap.py`: A* on the visibility graph. |
+
+The contour passes below add a second pattern at the edges. Of the schemes in the review, they are closest to the one of Jeon et al., as Liu et al. describe it: reciprocating coverage inside and spiral coverage outside. The differences are:
+
+- Two rings, not a spiral that goes on to the centre.
+- The rings come after the cells, nearest first. They are not part of the optimised order of stage 2.
+- Every cell uses the reciprocating pattern. Figure 5 of the review shows sub-regions with different patterns (reciprocating in some, spiral in others); the planner does not choose a pattern for each cell.
+
+Table 1 of the review notes that the reciprocating pattern needs a turning area and the spiral patterns do not. That is the reason for the strip the lanes leave, and for covering it with passes that follow the edge.
 
 > Liu, L., Liu, H., Wang, X., Li, J., Wang, P., Liu, S., Zou, J., & Yang, X. (2024). Application of path planning and tracking control technology in mower robots. *Agronomy*, 14(11), 2473. https://doi.org/10.3390/agronomy14112473
 
@@ -132,15 +146,18 @@ ros2 run lawn_mower_navigation safety_check --ros-args -p use_sim_time:=true -p 
 
 | Result | `demo`, lanes | `demo`, hybrid | `two_beds`, lanes | `two_beds`, hybrid |
 | --- | --- | --- | --- | --- |
-| Coverage, simulated | 61.6 % | 77.4 % | 65.0 % | 79.9 % |
+| Coverage, simulated | 61.2 % | 77.4 % | 65.1 % | 79.9 % |
 | Coverage, planned | 61.5 % | 77.2 % | 63.8 % | 79.6 % |
-| Duration | 472 s | 767 s | 917 s | 1487 s |
-| Distance | 158 m | 267 m | 331 m | 569 m |
-| Tracking error, mean and largest | 0.02 m and 0.16 m | 0.02 m and 0.13 m | 0.01 m and 0.15 m | 0.01 m and 0.14 m |
-| Body outside the lawn | 0.00 m | 0.01 m | 0.00 m | 0.02 m |
-| Energy: traction, blade, auxiliary | 5.4, 59.7, 2.0 Wh | 8.5, 97.6, 3.2 Wh | 10.1, 120.5, 3.8 Wh | 16.1, 186.3, 6.2 Wh |
+| Duration | 470 s | 767 s | 914 s | 1487 s |
+| Distance | 158 m | 267 m | 333 m | 569 m |
+| Tracking error, mean and largest | 0.02 m and 0.17 m | 0.02 m and 0.13 m | 0.02 m and 0.16 m | 0.01 m and 0.14 m |
+| Body past the lawn edge, at most | 0.01 m | 0.01 m | 0.02 m | 0.02 m |
+| Smallest gap between body and obstacle | 0.36 m | 0.20 m | 0.46 m | 0.20 m |
+| Energy: traction, blade, auxiliary | 5.4, 59.6, 2.0 Wh | 8.5, 97.6, 3.2 Wh | 10.1, 120.5, 3.8 Wh | 16.1, 186.3, 6.2 Wh |
 
 The simulated coverage of a lanes run can be above the planned one, because the blade stays on over short moves between cells.
+
+In all four runs a corner of the body passed the lawn edge by 1 cm to 2 cm, in a turn at the end of a lane: the robot stops up to 0.1 m late there, which uses up the margin of the turn. To get more room, raise `clearance` (lanes) and `pivot_edge` in `Margins` (contour passes). The body never touched an obstacle.
 
 These numbers use the estimate config. They show that the simulation works. They are not results for the paper.
 
