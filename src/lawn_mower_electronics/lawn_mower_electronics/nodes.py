@@ -35,6 +35,7 @@ QOS_DEPTH = 10
 DEFAULT_ROBOT = 'faculty_robot_estimate'
 DEFAULT_ELECTRONICS = 'faculty_robot'
 MONITOR_RATE = 10.0  # Hz, battery and energy reports
+PWM_VALUES = 2       # left and right pulse on the motor driver topic
 
 
 class ModelNode(Node):
@@ -114,6 +115,11 @@ class ControllerNode(ModelNode):
         self.create_timer(1.0 / self.electronics.controller.rate, self.step)
 
     def on_channels(self, msg):
+        if len(msg.data) != self.electronics.rc.channel_count:
+            self.get_logger().warning(
+                f'Ignored {topics.RC_CHANNELS} with {len(msg.data)} values, expected '
+                f'{self.electronics.rc.channel_count}', throttle_duration_sec=1.0)
+            return
         self.channels = list(msg.data)
 
     def on_failsafe(self, msg):
@@ -152,6 +158,11 @@ class MotorDriverNode(ModelNode):
         self.create_timer(1.0 / self.electronics.controller.rate, self.step)
 
     def on_pulses(self, msg):
+        if len(msg.data) != PWM_VALUES:
+            self.get_logger().warning(
+                f'Ignored {topics.PWM_DRIVE} with {len(msg.data)} values, expected {PWM_VALUES}',
+                throttle_duration_sec=1.0)
+            return
         self.model.set_pulses(self.now(), msg.data[0], msg.data[1])
 
     def on_estop(self, msg):

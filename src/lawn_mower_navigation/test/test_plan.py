@@ -162,3 +162,10 @@ def test_hybrid_fits_and_gains_on_every_shared_lawn(robot, lawn):
 def test_unknown_pattern(robot):
     with pytest.raises(ValueError, match='unknown pattern'):
         plan_mission(DEMO, robot, pattern='spiral')
+
+
+def test_turn_fits_where_the_body_has_room(hybrid):
+    assert hybrid.turn_fits((3.0, 4.0, 0.0), 1.57)                 # open lawn
+    # 0.66 m from the lawn edge, along it: the body fits, a quarter turn does not.
+    assert not hybrid.turn_fits((3.0, 0.66, 0.0), 1.57)
+    assert hybrid.turn_fits((3.0, 0.66, 0.0), 0.05)

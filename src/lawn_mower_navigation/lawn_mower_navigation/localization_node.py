@@ -17,6 +17,7 @@ from std_msgs.msg import UInt16MultiArray
 from lawn_mower_electronics import topics as hw
 from lawn_mower_electronics.config import load_electronics_config, resolve_electronics_config
 from lawn_mower_electronics.motor_driver import MotorDriver
+from lawn_mower_electronics.nodes import PWM_VALUES
 from lawn_mower_electronics.sensors import GNSS_TOPIC, IMU_TOPIC
 from lawn_mower_robot.kinematics import SkidSteerKinematics
 from lawn_mower_robot.robot_config import load_robot_config, resolve_robot_config
@@ -72,7 +73,9 @@ class LocalizationNode(Node):
         self.get_logger().info(f'Speed from {source}')
 
     def on_pulses(self, msg):
-        left, right = (self.driver.target(p) for p in msg.data[:2])
+        if len(msg.data) != PWM_VALUES:
+            return
+        left, right = (self.driver.target(p) for p in msg.data)
         self.target_speed, _ = self.kin.forward(left, right)
 
     def on_wheel_odom(self, msg):

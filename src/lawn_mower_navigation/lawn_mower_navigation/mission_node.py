@@ -3,7 +3,8 @@
     ros2 run lawn_mower_navigation mission --ros-args -p lawn:=demo -p method:=energy_ga
 
 It plans once at start, publishes the path, and waits until the controller is
-in automatic mode and the pose is known. Then it sends velocity commands and
+in automatic mode and the pose is known. It stops the drive and the blade when
+no pose has arrived for pose_timeout. Then it sends velocity commands and
 the blade request to the controller. When the operator takes over, or the
 controller reports a failsafe or an emergency stop, the mission pauses, and it
 goes on when automatic mode returns: the robot drives back to the point where
@@ -34,6 +35,7 @@ DEFAULT_SPEED_FRACTION = 0.5   # of the robot's speed limits
 DEFAULT_RATE = 20.0            # Hz
 DECELERATION_FRACTION = 0.6    # of the robot's acceleration limits, so the ramps are reachable
 NO_BUDGET = 0
+POSE_TIMEOUT = 0.5             # s without a pose before the robot stops
 
 PLANNED, WAITING, RUNNING, PAUSED, DONE = 'PLANNED', 'WAITING', 'RUNNING', 'PAUSED', 'DONE'
 LOST = 'LOST'   # off the path, with an obstacle or the lawn edge on the straight way back
@@ -76,8 +78,10 @@ class MissionNode(Node):
             f'planned coverage {m.planned_coverage["coverage"]:.1f} %, '
             f'clearance {m.clearance:.2f} m, planned in {m.planning_seconds:.1f} s')
 
-        self.tracker = PathTracker(m.segments, params, m.way_back)
+        self.tracker = PathTracker(m.segments, params, m.way_back, m.turn_fits)
         self.pose = None
+        self.pose_time = None
+        self.pose_timeout = self.declare_parameter('pose_timeout', POSE_TIMEOUT).value
         self.yaw_rate = 0.0
         self.last_step = None
         self.state = None
@@ -107,6 +111,10 @@ class MissionNode(Node):
         p = msg.pose.pose
         self.pose = (p.position.x, p.position.y, yaw_of(p.orientation))
         self.yaw_rate = msg.twist.twist.angular.z
+        self.pose_time = self.now()
+
+    def now(self):
+        return self.get_clock().now().nanoseconds * 1e-9
 
     def on_state(self, msg):
         self.state = msg.data
@@ -132,7 +140,17 @@ class MissionNode(Node):
             self.blade_pub.publish(Bool(data=False))
             self.set_status(WAITING if self.status in (PLANNED, WAITING) else PAUSED)
             return
-        now = self.get_clock().now().nanoseconds * 1e-9
+        now = self.now()
+        if now - self.pose_time > self.pose_timeout:
+            # The localisation stopped: the pose is old, so stop where we are.
+            self.get_logger().warning(f'No pose for {now - self.pose_time:.1f} s: stopped',
+                                      throttle_duration_sec=2.0)
+            self.tracker.hold()
+            self.last_step = None
+            self.cmd_pub.publish(Twist())
+            self.blade_pub.publish(Bool(data=False))
+            self.set_status(PAUSED)
+            return
         dt = 0.0 if self.last_step is None else now - self.last_step
         self.last_step = now
         cmd = self.tracker.update(self.pose, self.blade_running, self.yaw_rate, dt)

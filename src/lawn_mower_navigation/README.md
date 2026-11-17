@@ -52,6 +52,8 @@ The first heading is the `initial_heading` parameter. Driving corrects it. On th
 - A skid-steer robot does not turn at the rate it is told to. The tracker learns the ratio from the gyro and corrects its turn commands.
 - The blade is on along the lanes. It stays on over moves between cells shorter than 3 m, and is off on longer moves.
 - The robot waits for the blade to reach its speed before it enters a lane.
+- A turn that was not planned (after a takeover, or when the robot was pushed off its heading) is checked where the robot is. If the body does not fit, the mission reports `LOST` and waits for the operator.
+- The mission stops the drive and the blade when no pose has arrived for 0.5 s (`pose_timeout`).
 - A segment is done only when the robot reaches its end along the segment. When the robot is more than 0.6 m from the segment, it drives straight back to the point where it left it, if the body fits on that line and in the turns at its ends.
 
 ### Mission
@@ -146,16 +148,17 @@ ros2 run lawn_mower_navigation safety_check --ros-args -p use_sim_time:=true -p 
 
 | Result | `demo`, lanes | `demo`, hybrid | `two_beds`, lanes | `two_beds`, hybrid |
 | --- | --- | --- | --- | --- |
-| Coverage, simulated | 61.2 % | 77.4 % | 65.1 % | 79.9 % |
+| Coverage, simulated | 59.4 % | 77.1 % | 63.1 % | 79.3 % |
 | Coverage, planned | 61.5 % | 77.2 % | 63.8 % | 79.6 % |
+| Overlap, simulated and planned | 14 % and 20 % | 50 % and 49 % | 13 % and 18 % | 47 % and 46 % |
 | Duration | 470 s | 767 s | 914 s | 1487 s |
 | Distance | 158 m | 267 m | 333 m | 569 m |
-| Tracking error, mean and largest | 0.02 m and 0.17 m | 0.02 m and 0.13 m | 0.02 m and 0.16 m | 0.01 m and 0.14 m |
+| Tracking error, mean and largest | 0.02 m and 0.17 m | 0.02 m and 0.12 m | 0.02 m and 0.16 m | 0.01 m and 0.14 m |
 | Body past the lawn edge, at most | 0.01 m | 0.01 m | 0.02 m | 0.02 m |
 | Smallest gap between body and obstacle | 0.36 m | 0.20 m | 0.46 m | 0.20 m |
 | Energy: traction, blade, auxiliary | 5.4, 59.6, 2.0 Wh | 8.5, 97.6, 3.2 Wh | 10.1, 120.5, 3.8 Wh | 16.1, 186.3, 6.2 Wh |
 
-The simulated coverage of a lanes run can be above the planned one, because the blade stays on over short moves between cells.
+Coverage and overlap count the swath of each short piece of the driven path, as the planner counts its segments. The `demo` hybrid run is the last one, with every fix of the pull request; the other three are scored again from their saved trajectories.
 
 In all four runs a corner of the body passed the lawn edge by 1 cm to 2 cm, in a turn at the end of a lane: the robot stops up to 0.1 m late there, which uses up the margin of the turn. To get more room, raise `clearance` (lanes) and `pivot_edge` in `Margins` (contour passes). The body never touched an obstacle.
 

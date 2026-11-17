@@ -49,6 +49,9 @@ class Margins:
     run_obstacle: float = 0.25    # while driving straight, to an obstacle
     pivot_edge: float = 0.05      # at the worst moment of a turn in place, to the lawn edge
     pivot_obstacle: float = 0.10  # at the worst moment of a turn in place, to an obstacle
+    # A turn that was not planned, where the robot happens to be: the body may
+    # reach the lawn edge but not cross it.
+    resume_edge: float = 0.0
 
 
 def turning_radius(robot):
@@ -76,6 +79,7 @@ class Mission:
     planned_coverage: dict = None  # coverage and overlap [%] if the robot follows the path exactly
     run_check: object = None     # BodyCheck for straight runs
     pivot_check: object = None   # BodyCheck for turns in place
+    resume_check: object = None  # BodyCheck for turns that were not planned
 
     @property
     def free(self):
@@ -91,9 +95,13 @@ class Mission:
         """The body fits when the robot turns at pose (x, y, heading), drives
         straight to target and turns there to final_heading."""
         line = heading(pose[:2], target)
-        return (self.pivot_check.pivot(pose[:2], pose[2], line)
+        return (self.resume_check.pivot(pose[:2], pose[2], line)
                 and self.run_check.run(pose[:2], target)
                 and self.pivot_check.pivot(target, line, final_heading))
+
+    def turn_fits(self, pose, heading):
+        """The body fits when the robot turns in place at pose (x, y, heading) to heading."""
+        return self.resume_check.pivot(pose[:2], pose[2], heading)
 
 
 def _to_world(problem, points):
@@ -225,4 +233,6 @@ def plan_mission(lawn, robot, method=DEFAULT_METHOD, seed=0, cruise_speed=None, 
                    time.perf_counter() - t0, pattern, predicted, coverage,
                    BodyCheck(footprint, body_area(area, margins.run_edge, margins.run_obstacle)),
                    BodyCheck(footprint,
-                             body_area(area, margins.pivot_edge, margins.pivot_obstacle)))
+                             body_area(area, margins.pivot_edge, margins.pivot_obstacle)),
+                   BodyCheck(footprint,
+                             body_area(area, margins.resume_edge, margins.pivot_obstacle)))

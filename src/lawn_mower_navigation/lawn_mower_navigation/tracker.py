@@ -12,6 +12,12 @@ position was wrong) the tracker drives straight back to the point where it
 left the segment, if the body fits on that line and in the turns at both of
 its ends. If it does not, the tracker stops and reports that it is lost.
 
+The turns at the vertices of the path were checked when it was planned. A
+turn that was not planned (after the robot was stopped or driven by hand, or
+when it was pushed off its heading) is checked before it starts, where the
+robot is. If the body does not fit, the tracker stops and reports that it is
+lost.
+
 A skid-steer robot does not turn at the rate it is told to: the ratio depends
 on the ground. YawGain learns that ratio from the gyro while the robot
 drives, and the tracker divides its turn commands by it.
@@ -114,13 +120,17 @@ class Command:
 
 class PathTracker:
 
-    def __init__(self, segments, params, way_back=None):
+    def __init__(self, segments, params, way_back=None, turn_fits=None):
         """way_back(pose, target, final_heading) says whether the robot may turn
         at its pose (x, y, heading), drive straight to target (x, y) and turn
-        there to final_heading. None allows every way back to the path."""
+        there to final_heading. turn_fits(pose, heading) says whether it may
+        turn in place at its pose to heading. None allows every way back and
+        every turn."""
         self.segments = [s for s in segments if s.length > params.position_tolerance]
         self.params = params
         self.way_back = way_back
+        self.turn_fits = turn_fits
+        self.unplanned = False   # the next turn is not one of the planned vertices
         self.index = 0
         self.progress = 0.0   # m reached along the current segment
         self.detour = None    # Segment back to the path, while the robot is off it
@@ -143,6 +153,7 @@ class PathTracker:
         """The robot was stopped or driven by hand: turn onto the segment again."""
         if not self.done:
             self.phase = ALIGN
+            self.unplanned = True
 
     def errors(self, pose, seg=None):
         """(remaining distance, cross-track error, heading error) on a segment
@@ -214,9 +225,15 @@ class PathTracker:
                 else:
                     self.index += 1
                     self.progress = 0.0
+                    self.unplanned = False   # a planned vertex
                 self.phase = ALIGN if self.index < len(self.segments) else DONE
                 continue
             if self.phase == ALIGN:
+                if (self.unplanned and self.detour is None and self.turn_fits is not None
+                        and abs(heading_error) > p.heading_tolerance
+                        and not self.turn_fits(tuple(pose), seg.heading)):
+                    self.lost = True
+                    return Command(0.0, 0.0, False)
                 if abs(heading_error) > p.heading_tolerance:
                     return Command(0.0, self._turn_in_place(heading_error, yaw_rate), seg.blade)
                 if abs(yaw_rate) > p.still_rate:
@@ -224,8 +241,10 @@ class PathTracker:
                 if seg.blade and not blade_running:
                     return Command(0.0, 0.0, True)   # wait for the blade to spin up
                 self.phase = DRIVE
+                self.unplanned = False
             if abs(heading_error) > p.realign_angle:
                 self.phase = ALIGN
+                self.unplanned = True
                 continue
             # Brake early by the distance covered before a command takes effect.
             braking = max(remaining - self._last_v * p.reaction_time, 0.0)

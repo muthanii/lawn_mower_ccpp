@@ -185,3 +185,41 @@ def test_the_blade_is_off_on_the_way_back(robot):
     tracker = PathTracker(LANES, PARAMS)
     cmd = tracker.update((2.0, 3.0, 0.0), blade_running=False)
     assert not cmd.blade and cmd.omega != 0
+
+
+def test_a_turn_after_a_takeover_is_checked_where_the_robot_is(robot):
+    asked = []
+
+    def turn_fits(pose, heading):
+        asked.append((pose, heading))
+        return False
+
+    tracker = PathTracker(LANES, PARAMS, turn_fits=turn_fits)
+    tracker.update((1.0, 0.0, 0.0))                  # driving lane 0
+    tracker.hold()                                    # operator takes over, turns the robot
+    cmd = tracker.update((1.0, 0.0, math.radians(60)))
+    assert tracker.lost and (cmd.v, cmd.omega, cmd.blade) == (0.0, 0.0, False)
+    assert asked == [((1.0, 0.0, math.radians(60)), LANES[0].heading)]
+
+
+def test_planned_turns_are_not_checked_again(robot):
+    def turn_fits(pose, heading):
+        raise AssertionError('a planned turn was checked')
+
+    tracker = PathTracker(LANES, PARAMS, turn_fits=turn_fits)
+    trail = simulate(tracker, (0.0, 0.0, 0.0), robot)
+    assert tracker.done and not tracker.lost
+
+
+def test_a_turn_that_fits_after_a_takeover_goes_on(robot):
+    tracker = PathTracker(LANES, PARAMS, turn_fits=lambda pose, heading: True)
+    tracker.hold()
+    cmd = tracker.update((1.0, 0.0, math.radians(60)))
+    assert not tracker.lost and cmd.omega < 0
+
+
+def test_a_robot_pushed_off_its_heading_is_checked_too(robot):
+    tracker = PathTracker(LANES, PARAMS, turn_fits=lambda pose, heading: False)
+    tracker.update((1.0, 0.0, 0.0))
+    cmd = tracker.update((1.5, 0.0, math.radians(45)))   # beyond realign_angle
+    assert tracker.lost and cmd.v == 0

@@ -70,3 +70,15 @@ def test_a_turn_in_place_is_kept_and_its_footprint_checked():
     assert len(thin(turn)) > 30
     assert footprint_excursion(turn[:1], LAWN, 1.2, 1.0) == 0.0
     assert footprint_excursion(turn, LAWN, 1.2, 1.0) == pytest.approx(0.23, abs=0.02)
+
+
+def test_a_lane_driven_out_and_back_overlaps_itself():
+    out_and_back = line(2.0, 0.0, 10.0) + line(2.0, 10.0, 0.0, t0=1000)
+    result = coverage(out_and_back, LAWN, WIDTH)
+    assert result['coverage'] == pytest.approx(100 * 10 * WIDTH / LAWN.area, rel=1e-2)
+    assert result['overlap'] == pytest.approx(100, rel=2e-2)
+
+
+def test_a_straight_lane_does_not_overlap_itself():
+    assert coverage(line(2.0, 0.0, 10.0, step=0.01), LAWN, WIDTH)['overlap'] == \
+        pytest.approx(0.0, abs=0.5)
