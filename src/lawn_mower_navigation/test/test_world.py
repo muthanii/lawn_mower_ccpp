@@ -1,7 +1,7 @@
 import xml.etree.ElementTree as ET
 
 from lawn_mower_navigation.lawns import DEMO, find_lawn
-from lawn_mower_navigation.world import DEFAULT_LATITUDE, lawn_world_sdf
+from lawn_mower_navigation.world import WORLD_ORIGIN, lawn_world_sdf
 
 
 def world_of(lawn, **kwargs):
@@ -35,7 +35,7 @@ def test_world_has_the_sensor_systems_and_origin():
     world = world_of(DEMO)
     plugins = {p.get('filename') for p in world.findall('plugin')}
     assert {'gz-sim-physics-system', 'gz-sim-imu-system', 'gz-sim-navsat-system'} <= plugins
-    assert float(world.find('spherical_coordinates/latitude_deg').text) == DEFAULT_LATITUDE
+    assert float(world.find('spherical_coordinates/latitude_deg').text) == WORLD_ORIGIN[0]
 
 
 def test_step_and_speed_are_arguments():

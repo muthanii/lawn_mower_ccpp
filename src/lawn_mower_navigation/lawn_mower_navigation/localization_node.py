@@ -25,7 +25,7 @@ from . import topics
 from .geo import to_local
 from .localization import PoseFilter, SpeedModel
 from .ros_util import QOS_DEPTH, set_yaw, stamp_seconds
-from .world import DEFAULT_LATITUDE, DEFAULT_LONGITUDE
+from .world import WORLD_ORIGIN
 
 SPEED_SOURCES = ('pulses', 'odometry')
 DEFAULT_SPEED_STDDEV = 0.1          # m/s, error of the speed taken from the pulses
@@ -41,8 +41,8 @@ class LocalizationNode(Node):
             self.declare_parameter('robot', 'faculty_robot_estimate').value))
         electronics = load_electronics_config(resolve_electronics_config(
             self.declare_parameter('electronics', 'faculty_robot').value))
-        self.origin = (self.declare_parameter('origin_latitude', DEFAULT_LATITUDE).value,
-                       self.declare_parameter('origin_longitude', DEFAULT_LONGITUDE).value)
+        # (degrees north, degrees east) of the lawn frame's (0, 0)
+        self.origin = tuple(self.declare_parameter('origin', list(WORLD_ORIGIN)).value)
         self.initial_heading = self.declare_parameter('initial_heading', 0.0).value
         source = self.declare_parameter('speed_source', SPEED_SOURCES[0]).value
         if source not in SPEED_SOURCES:
@@ -69,7 +69,7 @@ class LocalizationNode(Node):
             self.create_subscription(UInt16MultiArray, hw.PWM_DRIVE, self.on_pulses, QOS_DEPTH)
         else:
             self.create_subscription(Odometry, topics.WHEEL_ODOM, self.on_wheel_odom, QOS_DEPTH)
-        self.get_logger().info(f'Speed from {source}; origin {self.origin}')
+        self.get_logger().info(f'Speed from {source}')
 
     def on_pulses(self, msg):
         left, right = (self.driver.target(p) for p in msg.data[:2])

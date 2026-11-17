@@ -26,7 +26,7 @@ from lawn_mower_electronics import topics as hw
 from lawn_mower_electronics.config import load_electronics_config, resolve_electronics_config
 from lawn_mower_electronics.sensors import CONTACT_TOPIC, GNSS_TOPIC, IMU_TOPIC, sensors_sdf
 from lawn_mower_navigation.lawns import find_lawn
-from lawn_mower_navigation.world import DEFAULT_LATITUDE, DEFAULT_LONGITUDE, lawn_world_sdf
+from lawn_mower_navigation.world import WORLD_ORIGIN, lawn_world_sdf
 from lawn_mower_robot.robot_config import load_robot_config, resolve_robot_config
 from lawn_mower_robot.sdf_model import build_sdf
 
@@ -98,8 +98,7 @@ def launch_setup(context):
         Node(package='lawn_mower_navigation', executable='localization', output='screen',
              parameters=[dict(both, initial_heading=float(heading),
                               speed_source=arg['speed_source'],
-                              origin_latitude=DEFAULT_LATITUDE,
-                              origin_longitude=DEFAULT_LONGITUDE)]),
+                              origin=list(WORLD_ORIGIN))]),
         Node(package='lawn_mower_navigation', executable='mission', output='screen',
              parameters=[dict(run, budget=int(arg['budget']),
                               speed_fraction=float(arg['speed_fraction']),
