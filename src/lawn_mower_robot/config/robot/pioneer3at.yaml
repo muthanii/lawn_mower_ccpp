@@ -94,6 +94,11 @@ parameters:
     auxiliary_power: {value: 0.0, unit: W, source: assumption,
                       note: "Only traction energy is counted for the placeholder"}
 
+  mower:
+    cutting_width: {value: 0.5, unit: m, source: assumption,
+                    note: "The Pioneer 3-AT has no mower. This is the lane spacing of the shared test lawns"}
+    blade_power: {value: null, unit: W, source: assumption, note: "No blade"}
+
   gazebo:
     model_name: {value: pioneer3at, source: osrf_model}
     chassis_mesh: {value: "model://pioneer3at/meshes/chassis.dae", source: osrf_model}

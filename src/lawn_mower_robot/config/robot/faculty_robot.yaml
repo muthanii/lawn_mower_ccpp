@@ -1,5 +1,13 @@
 # Faculty robot: STUB. Loading this file fails until every TODO is replaced.
 #
+# Filled so far, from the faculty's frame drawing and manuscript: frame length,
+# wheel radius, battery and top speed. The TODO values need the robot itself.
+# The notes on TODO values give what the documents say and why it is not used.
+#
+# The manuscript's Table 1 (900 x 700 mm footprint, 180 mm clearance) disagrees
+# with its own text (1200 x 800 mm, 200 mm). The frame drawing settles the
+# footprint as 1200 x 800 mm.
+#
 # Measurements needed from the faculty robot (with how to get them):
 #   geometry  - track width B and wheelbase L between wheel centres, wheel
 #               radius r (loaded, measured as distance per wheel revolution / 2 pi),
@@ -19,6 +27,8 @@
 #               expansion factor chi (commanded vs measured yaw rate),
 #               longitudinal slip s (commanded vs measured speed).
 #   electrical- idle power draw of computer, sensors and drivers (power meter).
+#   mower     - blade length tip to tip, and the blade motor's current while
+#               cutting (clamp meter).
 #   gazebo    - visual meshes if a CAD model exists, else null (box and cylinders).
 #
 # For every value, add a source key below (e.g. `measured` with the date and
@@ -28,29 +38,45 @@ name: faculty_robot
 
 sources:
   proposal: Project proposal, drive platform of 4 x 24 V / 10 A / 250 W motors.
+  frame_drawing: >-
+    Faculty CorelDRAW drawing of the chassis frame, 2026-06-19 (not in this
+    repository). Octagon, 1200 x 800 mm outside, 40 mm tube, corners cut
+    190 x 195 mm.
+  faculty_manuscript: >-
+    Faculty manuscript "Design and Construction of a Multifunctional Lawn Mower
+    System" (unpublished, not in this repository), which describes the robot
+    under radio control.
   measured: TODO date, place and method of the faculty robot measurements.
   assumption: >-
     Modelling assumption, to be replaced with a measurement before results.
 
 parameters:
   geometry:
-    track_width: {value: TODO, unit: m, source: measured}
-    wheelbase: {value: TODO, unit: m, source: measured}
-    wheel_radius: {value: TODO, unit: m, source: measured}
-    wheel_width: {value: TODO, unit: m, source: measured}
-    body_length: {value: TODO, unit: m, source: measured}
-    body_width: {value: TODO, unit: m, source: measured}
+    track_width: {value: TODO, unit: m, source: measured,
+                  note: "The wheels sit outside the 0.80 m frame. About 0.92 from a top-view photo"}
+    wheelbase: {value: TODO, unit: m, source: measured,
+                note: "About 0.55 from a top-view photo"}
+    wheel_radius: {value: 0.165, unit: m, source: faculty_manuscript,
+                   note: "Unloaded, from the 330 mm tyre diameter. Replace with the loaded rolling radius"}
+    wheel_width: {value: TODO, unit: m, source: measured,
+                  note: "About 0.10 from a top-view photo"}
+    body_length: {value: 1.2, unit: m, source: frame_drawing,
+                  note: "Frame length. Check that the shell does not overhang it"}
+    body_width: {value: TODO, unit: m, source: measured,
+                 note: "Over the tyres. The frame alone is 0.80 (frame_drawing)"}
     body_height: {value: TODO, unit: m, source: measured}
 
   inertia:
-    mass: {value: TODO, unit: kg, source: measured}
+    mass: {value: TODO, unit: kg, source: measured,
+           note: "The manuscript gives 42 kg, which looks low for a steel frame, four gear motors and a 100 Ah LiFePO4 pack. Weigh the robot"}
     wheel_mass: {value: TODO, unit: kg, source: measured}
     yaw_inertia: {value: TODO, unit: kg*m^2, source: measured}
 
   drive:
     wheel_count: {value: 4, unit: '1', source: proposal}
     gear_ratio: {value: TODO, unit: '1', source: measured}
-    wheel_max_speed: {value: TODO, unit: rad/s, source: measured}
+    wheel_max_speed: {value: TODO, unit: rad/s, source: measured,
+                      note: "No-load. The loaded top speed gives 1.2 / 0.165 = 7.3 as a lower bound"}
     wheel_max_torque: {value: TODO, unit: N*m, source: measured}
     drivetrain_efficiency: {value: TODO, unit: '1', source: measured}
 
@@ -61,11 +87,12 @@ parameters:
     rated_power: {value: 250.0, unit: W, source: proposal}
 
   battery:
-    voltage: {value: TODO, unit: V, source: measured}
-    capacity: {value: TODO, unit: A*h, source: measured}
+    voltage: {value: 25.6, unit: V, source: faculty_manuscript, note: "EverExceed LiFePO4 pack with BMS"}
+    capacity: {value: 100.0, unit: A*h, source: faculty_manuscript}
 
   limits:
-    max_linear_speed: {value: TODO, unit: m/s, source: measured}
+    max_linear_speed: {value: 1.2, unit: m/s, source: faculty_manuscript,
+                       note: "Full throttle under radio control on flat grass. 0.95 on rough grass, 0.62 on a 10 degree slope"}
     max_angular_speed: {value: TODO, unit: rad/s, source: measured}
     max_linear_acceleration: {value: TODO, unit: m/s^2, source: measured}
     max_angular_acceleration: {value: TODO, unit: rad/s^2, source: measured}
@@ -79,6 +106,12 @@ parameters:
 
   electrical:
     auxiliary_power: {value: TODO, unit: W, source: measured}
+
+  mower:
+    cutting_width: {value: TODO, unit: m, source: measured,
+                    note: "Tip-to-tip length of the blade. About 0.5 from a photo"}
+    blade_power: {value: 500.0, unit: W, source: faculty_manuscript,
+                  note: "Rated power of the 24 V, 6000 rpm blade motor. Replace with the measured draw while cutting"}
 
   gazebo:
     model_name: {value: faculty_robot, source: measured}

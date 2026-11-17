@@ -1,0 +1,93 @@
+# Faculty robot, ESTIMATE. A loadable stand-in for faculty_robot.yaml, so the
+# simulation and the planner can run at the size of the real robot before it
+# is measured.
+#
+# Only the values with source frame_drawing, faculty_manuscript or proposal
+# come from a document. Every other value is an estimate with
+# `source: assumption`, and the loader logs a warning for each one. Do not
+# use numbers from this file in the paper. When the robot is measured, fill
+# faculty_robot.yaml and use that file.
+
+name: faculty_robot_estimate
+
+sources:
+  proposal: Project proposal, drive platform of 4 x 24 V / 10 A / 250 W motors.
+  frame_drawing: >-
+    Faculty CorelDRAW drawing of the chassis frame, 2026-06-19 (not in this
+    repository). Octagon, 1200 x 800 mm outside, 40 mm tube, corners cut
+    190 x 195 mm.
+  faculty_manuscript: >-
+    Faculty manuscript "Design and Construction of a Multifunctional Lawn Mower
+    System" (unpublished, not in this repository), which describes the robot
+    under radio control.
+  derived: Computed from other values in this file; the note gives the formula.
+  assumption: >-
+    Estimate from a photo, or a typical value, with no measurement behind it.
+    Replace with a measurement in faculty_robot.yaml.
+
+parameters:
+  geometry:
+    track_width: {value: 0.92, unit: m, source: assumption,
+                  note: "Scaled from a top-view photo against the 0.80 m frame. The wheels sit outside the frame"}
+    wheelbase: {value: 0.55, unit: m, source: assumption, note: "Scaled from a top-view photo"}
+    wheel_radius: {value: 0.165, unit: m, source: faculty_manuscript,
+                   note: "Unloaded, from the 330 mm tyre diameter"}
+    wheel_width: {value: 0.10, unit: m, source: assumption, note: "Scaled from a top-view photo"}
+    body_length: {value: 1.2, unit: m, source: frame_drawing, note: "Frame length"}
+    body_width: {value: 1.02, unit: m, source: derived, note: "Over the tyres: track_width + wheel_width"}
+    body_height: {value: 0.5, unit: m, source: assumption, note: "Top of the shell above the ground, from photos"}
+
+  inertia:
+    mass: {value: 42.0, unit: kg, source: faculty_manuscript,
+           note: "Looks low for a steel frame, four gear motors and a 100 Ah LiFePO4 pack. Weigh the robot"}
+    wheel_mass: {value: 3.0, unit: kg, source: assumption, note: "Pneumatic 13 inch wheel with its hub"}
+    yaw_inertia: {value: 8.68, unit: kg*m^2, source: derived,
+                  note: "Solid box m (body_length^2 + body_width^2) / 12"}
+
+  drive:
+    wheel_count: {value: 4, unit: '1', source: proposal}
+    gear_ratio: {value: null, unit: '1', source: assumption, note: "Unknown"}
+    wheel_max_speed: {value: 8.0, unit: rad/s, source: assumption,
+                      note: "No-load. Above the 1.2 / 0.165 = 7.3 that the loaded top speed gives"}
+    wheel_max_torque: {value: null, unit: N*m, source: assumption, note: "Unknown"}
+    drivetrain_efficiency: {value: 0.6, unit: '1', source: assumption}
+
+  motor:
+    count: {value: 4, unit: '1', source: proposal}
+    rated_voltage: {value: 24.0, unit: V, source: proposal}
+    rated_current: {value: 10.0, unit: A, source: proposal}
+    rated_power: {value: 250.0, unit: W, source: proposal}
+
+  battery:
+    voltage: {value: 25.6, unit: V, source: faculty_manuscript, note: "EverExceed LiFePO4 pack with BMS"}
+    capacity: {value: 100.0, unit: A*h, source: faculty_manuscript}
+
+  limits:
+    max_linear_speed: {value: 1.2, unit: m/s, source: faculty_manuscript,
+                       note: "Full throttle under radio control on flat grass"}
+    max_angular_speed: {value: 1.0, unit: rad/s, source: assumption}
+    max_linear_acceleration: {value: 0.5, unit: m/s^2, source: assumption}
+    max_angular_acceleration: {value: 1.0, unit: rad/s^2, source: assumption}
+
+  terrain:
+    rolling_resistance: {value: 0.08, unit: '1', source: assumption, note: "Typical for pneumatic tyres on grass"}
+    lateral_friction: {value: 0.6, unit: '1', source: assumption}
+    longitudinal_friction: {value: 1.0, unit: '1', source: assumption}
+    icr_expansion_factor: {value: 1.5, unit: '1', source: assumption}
+    longitudinal_slip: {value: 0.0, unit: '1', source: assumption,
+                        note: "Steady slip folded into icr_expansion_factor"}
+
+  electrical:
+    auxiliary_power: {value: 15.0, unit: W, source: assumption,
+                      note: "Companion computer, controller, GNSS receiver and radio receiver"}
+
+  mower:
+    cutting_width: {value: 0.5, unit: m, source: assumption, note: "Blade length scaled from a photo"}
+    blade_power: {value: 500.0, unit: W, source: faculty_manuscript,
+                  note: "Rated power of the 24 V, 6000 rpm blade motor"}
+
+  gazebo:
+    model_name: {value: faculty_robot, source: assumption}
+    chassis_mesh: {value: null, source: assumption}
+    wheel_mesh: {value: null, source: assumption}
+    chassis_mesh_offset_z: {value: null, unit: m, source: assumption}

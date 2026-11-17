@@ -86,6 +86,11 @@ SCHEMA = {
     'electrical': {
         'auxiliary_power': Field('W', 'Constant draw of computer, sensors and drivers.', positive=False),
     },
+    'mower': {
+        'cutting_width': Field('m', 'Width of the cut, which is the lane spacing of the coverage path.'),
+        'blade_power': Field('W', 'Electrical power of the blade motor while it cuts.',
+                             required=False, positive=False),
+    },
     'gazebo': {
         'model_name': StringField('Name of the spawned model.'),
         'chassis_mesh': StringField('Chassis visual mesh URI, or null for a box.', required=False),
