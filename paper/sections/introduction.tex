@@ -1,4 +1,31 @@
 \section{Introduction}
 \label{sec:introduction}
 
-% TODO
+% WRITING PROMPTS (comments only; they do not print). About 1 to 1.5 pages,
+% five paragraphs. End with a list of contributions.
+%
+% 1. Context. Why robotic lawn mowing: labour, regular cutting, campus and
+%    park lawns. Most commercial mowers still bounce randomly inside a
+%    boundary wire. What does random mowing cost in time, overlap and energy?
+% 2. Coverage path planning. Define complete coverage path planning (CCPP) in
+%    one sentence. Say how the field splits: cell decomposition (boustrophedon),
+%    grid methods, and soft computing (GA, PSO, ACO) to order sub-regions.
+% 3. The gap. Ask yourself: what do these methods minimise? Mostly length or
+%    the number of turns, measured after planning. For a skid-steer robot a
+%    point turn is expensive: with the placeholder robot one 90 degree turn
+%    costs as much as 3.3 m of straight driving (Fig. energy-model), and turns
+%    are 26 to 31 % of the plan energy. So length is a poor proxy for battery use.
+% 4. This paper. The faculty robot: a radio-controlled 4WD skid-steer mower.
+%    You make it autonomous (Fig. robot-architecture) and plan its coverage by
+%    energy. Name the two levers of the method: the decomposition direction
+%    and the cell order.
+% 5. Contributions, as a list (keep each to one or two lines):
+%    - an energy-aware CCPP that chooses the decomposition direction and the
+%      cell order by a skid-steer energy model (GA, with a PSO variant);
+%    - a fair comparison with a re-implementation of Xie et al. (2024) on
+%      shared cells, lanes and transitions, ten lawns, equal budgets, and
+%      paired statistical tests, with the gain split into direction and order;
+%    - the retrofit that makes a radio-controlled mower autonomous without
+%      losing manual control (controller, PWM relay for the blade, sensors);
+%    - open code and data (repository and Zenodo DOI).
+% Close with one sentence on the structure of the paper (Sections 2 to 9).

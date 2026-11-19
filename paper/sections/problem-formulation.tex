@@ -1,4 +1,20 @@
 \section{Problem formulation}
 \label{sec:problem-formulation}
 
-% TODO
+% WRITING PROMPTS (comments only; they do not print). About half a page.
+% Use notes/method-draft.tex for the notation; keep the same symbols.
+%
+% Inputs: the lawn polygon L with obstacle holes, the cutting width w, the
+% robot start pose, and the robot model (Section robot-energy-model).
+% Output: one path from the start pose that covers the free area.
+% Decision variables: the decomposition direction theta, the cell order pi,
+% and the variant (sweep angle and start corner) a_k of each cell.
+% Objective: the battery energy J(theta, pi, a) of the whole path, with
+% straights and point turns (Eq. path-energy and Eq. plan-cost in the draft).
+% Constraints: the path stays in the free area (lawn eroded by w/2), every
+% cell is covered once.
+%
+% Say explicitly what is NOT optimised (the A* transitions are shortest in
+% length, turns are in place, no arc turns) so a reviewer sees the scope.
+% State the size of the search space: n! orders times K^n variants, and say
+% why the variant choice is exact (dynamic programming, O(n K^2)).
