@@ -541,7 +541,7 @@ def fig_fuzzy(preview):
         ax.set_ylim(0, 1.18)
         ax.set_yticks([0, 0.5, 1])
         ax.set_xlabel(xlabel)
-        ax.set_xticks([round(c * scale, 2) for c in centres[::2]])
+        ax.set_xticks([-0.3, 0, 0.3] if scale == 1.0 else [-20, 0, 20])
         if k == 0:
             ax.set_ylabel('Membership $\\mu$')
         panel_label(ax, f'({chr(97 + k)})', x=-0.12, y=1.08)
