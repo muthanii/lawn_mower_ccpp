@@ -1,4 +1,23 @@
 \section{Discussion}
 \label{sec:discussion}
 
-% TODO
+% WRITING PROMPTS (comments only; they do not print). About 1 to 1.5 pages.
+% Answer these questions, one paragraph each:
+%
+% - Why does energy differ from length? Path length is almost the same
+%   (-1 %), but turns fall by 24 % and turns cost 26-31 % of the energy
+%   (Fig. energy-model c). Tie the result back to the skid-steer model.
+% - Why does the direction matter more than the order (-7.3 % vs -3.3 %)? The
+%   direction fixes the number of lanes and so most of the turns; the order
+%   only changes the short connections. Is this specific to our method? No:
+%   any ordering method can use the direction choice. Say so.
+% - How fair is the comparison? Shared cells, lanes, transitions and budget;
+%   our interpretation of Xie et al. where their paper is open; the default
+%   direction (lanes along y) is the worse axis on most lawns, which inflates
+%   the direction gain. Report the same-direction number as the conservative one.
+% - Limits of the model: point turns only, Coulomb lateral friction
+%   over-estimates wide turns, terrain values from a lab surface (Yu et al.),
+%   placeholder robot. What changes on grass and slopes?
+% - Practical side: the retrofit keeps manual control and fails safe (Fig.
+%   controller-states). What did you learn from building it? What is still to
+%   test on the real robot (RTK fix loss, bumper coverage of the wheels)?
