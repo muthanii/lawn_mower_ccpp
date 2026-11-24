@@ -176,11 +176,11 @@ The runs used a container with the packages of the dev container image: ROS 2 Ly
    docs/tools/screenshots.sh shot docs/images/top.png scene
    ```
 
-5. After the run, plot the trajectory:
+5. After the run, plot the trajectory. The launch above writes it to `mission_results`; the saved runs of this page are in `docs/results/`.
 
    ```bash
    PYTHONPATH=src/lawn_mower_planning:src/lawn_mower_robot:src/lawn_mower_navigation \
-       python3 docs/tools/plot_run.py two_beds docs/results/two_beds docs/images/two-beds-coverage.png
+       python3 docs/tools/plot_run.py two_beds mission_results two-beds-coverage.png
    ```
 
 The launch ends when the evaluator has written the results, and Gazebo closes with it a few seconds later. Take the last screenshots as soon as the mission reports `DONE`.
