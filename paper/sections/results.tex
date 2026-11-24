@@ -1,14 +1,59 @@
 \section{Results}
 \label{sec:results}
 
-% TODO: text.
+% WRITING PROMPTS (comments only; they do not print). About 2 pages. Report
+% facts here; keep the interpretation for the Discussion.
 %
 % The tables are generated from paper/data/ by
 %   ros2 run lawn_mower_planning analyze_results paper/data/ordering-pioneer3at-direction.csv --tables paper/tables
+% and the figures by paper/scripts/make_figures.py (see paper/scripts/README.md).
 % "Ours" in the tables is the full method: the decomposition direction chosen
 % by energy, then the GA order. Report the split of the gain (direction alone,
 % ordering alone) with it; see src/lawn_mower_planning/README.md.
 % They show the Pioneer 3-AT placeholder until the faculty robot runs are in.
+%
+% 1. Energy (Table ordering-energy, Fig. energy-results a). Ours uses less
+%    energy than Xie et al. on every lawn and every seed: -10.3 % on average
+%    (-6.4 % on random_3 to -14.2 % on two_beds), p = 0.002 over the lawns,
+%    r = -1.00. With the same decomposition the difference is -3.3 %.
+% 2. Where the gain comes from (Fig. energy-results b). Direction alone
+%    (Xie et al. on our direction vs. Xie et al.): -7.3 % on average; ordering
+%    alone: -3.3 %. Both are negative on every lawn.
+% 3. Example (Fig. example-plans, three_beds, seed 0): 10.39 -> 9.30 -> 8.92 kJ
+%    and 154 -> 115 -> 112 turns. Describe what the reader sees: the turned
+%    lanes and the shorter transitions.
+% 4. Other metrics (Table ordering-metrics): turns -24.4 %, path length -1.0 %
+%    (not significant), connection length, coverage -0.8 points (explain the
+%    clearance band), overlap, energy per mowed area -9.6 %.
+% 5. Search quality (Fig. convergence): on the four 7-cell lawns the GA finds
+%    the exact optimum in all 40 runs, at a median of 350 to 650 evaluations;
+%    the PSO in 36 of 40. So 20 000 evaluations are ample on these lawns.
+% 6. Planning time: 5.7 s against 2.4 s. Is that a problem for a mower that
+%    plans once per lawn? Say so in one sentence here or in the Discussion.
 
 \input{tables/ordering-energy}
 \input{tables/ordering-metrics}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{example-plans}
+% DRAFT caption: rewrite in your own words.
+\caption{Plans on the \texttt{three\_beds} lawn, seed 0. (a) Xie et al. (b) The ordering of Xie et al.\ on our decomposition direction. (c) Ours. Numbers give the visiting order of the cells.}
+\label{fig:example-plans}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{energy-results}
+% DRAFT caption: rewrite in your own words.
+\caption{Energy of our plans relative to the baseline, per lawn. (a) Paired difference for each of the 10 seeds, against Xie et al.\ and against Xie et al.\ on the same decomposition direction. (b) The mean difference to Xie et al.\ split into the part from the direction choice and the part from the energy ordering, both in percent of the energy of Xie et al., so that they add up to the total (tick).}
+\label{fig:energy-results}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{convergence}
+% DRAFT caption: rewrite in your own words.
+\caption{Gap of the best plan to the exact energy optimum during the search, on the four lawns of up to 8 cells (default direction). Lines: median of 10 seeds; bands: interquartile range.}
+\label{fig:convergence}
+\end{figure*}

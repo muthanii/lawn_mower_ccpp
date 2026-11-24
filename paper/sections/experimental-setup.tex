@@ -1,4 +1,30 @@
 \section{Experimental setup}
 \label{sec:experimental-setup}
 
-% TODO
+% WRITING PROMPTS (comments only; they do not print). About 2 pages. The
+% reference draft is notes/experimental-setup-draft.tex. Cover, in order:
+%
+% - Robot model: which parameters, and that the faculty robot replaces the
+%   placeholder before submission.
+% - Test lawns (Fig. test-lawns and the lawn table): seven hand-made and three
+%   random lawns, 7 to 15 cells. Note that the README and the figure give
+%   random_1 = 576 m2, random_2 = 583 m2 and 10 cells after the decomposition
+%   fix; the draft table still has the old values. Use the figure's numbers.
+% - Compared methods: ours (direction + GA), our ordering alone (GA, PSO), Xie
+%   et al. re-implemented (with the interpretation table), Xie et al. on our
+%   direction, the length-and-turns ablation, and the exact optimum on <= 8 cells.
+% - Budget and seeds: 20 000 evaluations, seeds 0-9, 100 runs per method.
+% - Tuning protocol on separate lawns.
+% - Metrics and statistics (paired Wilcoxon, Holm, rank-biserial r).
+% - Implementation and hardware: fill in CPU and memory.
+%
+% Ask yourself: could a reader rerun every number from this section and the
+% repository alone? If not, add what is missing.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{test-lawns}
+% DRAFT caption: rewrite in your own words.
+\caption{The ten test lawns with their boustrophedon cells in the default direction (lanes along $y$). Hatched: obstacles. Triangle: robot start. All panels share one scale; scale bar: 10~m.}
+\label{fig:test-lawns}
+\end{figure*}

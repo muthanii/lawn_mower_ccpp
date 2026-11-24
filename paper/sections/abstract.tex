@@ -1,3 +1,22 @@
+% WRITING PROMPTS (comments only; they do not print). Write the abstract last,
+% after Results and Discussion are final. About 250 words in four parts.
+%
+% Background: one sentence on why coverage energy matters for a battery
+%   lawn mower, one on the gap: published CCPP methods optimise path length
+%   or turns and only measure energy afterwards, if at all.
+% Methods: what you did, in one breath each: boustrophedon cells with lanes
+%   and A* transitions shared by every method; a skid-steer energy model of
+%   straights and point turns; our method chooses the decomposition direction
+%   by energy and orders the cells with a GA (PSO as a variant); the faculty
+%   robot made autonomous with a real-time controller, an IMU and a fuzzy
+%   path tracker (pose from the simulator; no GNSS yet). Name the baseline (Xie et al. 2024, re-implemented).
+% Results: the headline numbers from Table ordering-energy and Fig.
+%   energy-results: energy -10.3 % against Xie et al. on all ten lawns
+%   (p = 0.002 over lawns), -3.3 % with the same decomposition, turns -24 %,
+%   path length unchanged (-1 %, n.s.). Update these after the faculty-robot runs.
+% Conclusions: one sentence on what the reader should take away (energy, not
+%   length, should be the planning objective for skid-steer mowers; the
+%   decomposition direction matters more than the cell order).
 \begin{abstract}
 \textbf{Background:} % TODO
 \textbf{Methods:} % TODO
