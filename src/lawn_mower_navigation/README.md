@@ -169,5 +169,5 @@ These numbers use the estimate config. They show that the simulation works. They
 - The ground is flat. The grass is not simulated: the blade draws its full cutting power whenever it spins.
 - The robot senses an obstacle only when its bumper touches it. It has no lidar or camera. It stays clear of the obstacles in the lawn polygon.
 - The bumper covers the chassis, not the wheels, which stand out to the sides.
-- The simulation was run without the Gazebo window (`headless:=true`) only.
+- The reference runs above were headless (`headless:=true`). [`docs/`](../../docs/README.md) has screenshots of runs with the Gazebo window.
 - The electronics are behavioural models, not the firmware of the real parts.

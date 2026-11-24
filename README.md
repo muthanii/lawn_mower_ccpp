@@ -111,6 +111,8 @@ Mow the demo lawn in Gazebo:
 ros2 launch lawn_mower_navigation coverage_sim.launch.py
 ```
 
+Screenshots of the simulation and the results of those runs are in [`docs/`](docs/README.md).
+
 ## Paper
 
 The journal paper is in `paper/`. It uses the Elsevier CAS single-column class (`cas-sc`), as linked in the journal's guide for authors, with numbered references. The target journal is *Biomimetic Intelligence and Robotics*.
