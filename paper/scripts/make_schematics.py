@@ -194,7 +194,7 @@ def power(preview):
     d.add(elm.Fuse().down().at((xf, logic)).to((xf, logic - 1.6)).color(POWER))
     text(d, (xf - 0.5, logic - 0.8), 'F3', halign='right', fontsize=fs)
     bx, bw, bh = 46.4, 4.6, 2.6
-    outs = (('U2 DC-DC\n24 → 5 V', '+5 V: receiver,\ncontroller, RLY1,\nGNSS, IMU', 3.4),
+    outs = (('U2 DC-DC\n24 → 5 V', '+5 V: receiver,\ncontroller, RLY1,\nIMU', 3.4),
             ('U3 DC-DC\n24 → 12 V', '+12 V:\ncompanion\ncomputer', 0.0))
     wire(d, [(xf, logic - 1.6), (xf, outs[1][2] + 1.3)], POWER)
     for name, out, by in outs:
@@ -276,14 +276,13 @@ def robot(preview):
     B, wb = 14.2, 5.6    # computers
     C, wc = 24.4, 4.8    # actuator interfaces
     D, wd = 30.7, 3.9    # actuators
-    c.box('gnss', A, 14.3, wa, 2.2, 'RTK GNSS receiver', 'position, 10 Hz', RETROFIT)
-    c.box('imu', A, 11.5, wa, 2.2, 'IMU', 'yaw rate, 100 Hz', RETROFIT)
+    c.box('imu', A, 12.9, wa, 2.2, 'IMU', 'yaw rate, 100 Hz', RETROFIT)
     c.box('rx', A, 8.6, wa, 2.6, 'Radio receiver', 'Microzone MC7RB-V2\nfailsafe: CH5, CH6 low')
     c.box('bump', A, 5.8, wa, 2.0, 'Bumper strip', 'contact switch', RETROFIT)
     c.box('bat', A, 0.8, wa, 3.4, 'Battery', 'EverExceed LiFePO$_4$\n25.6 V, 100 Ah\nwith BMS')
 
     c.box('pc', B, 11.5, wb, 5.0, 'Companion computer', 'ROS 2\ncoverage path planner\n'
-          '(BCD, energy GA)\nEKF localisation\nmission, fuzzy tracker', RETROFIT)
+          '(BCD, energy GA)\nmission, fuzzy tracker', RETROFIT)
     c.box('ctl', B, 5.8, wb, 3.9, 'Real-time controller', 'modes: ESTOP, FAILSAFE,\n'
           'MANUAL, AUTO\ncommand watchdog', RETROFIT)
     c.box('mon', B - 1.0, 2.6, 3.0, 1.9, 'V/I monitor', 'shunt', RETROFIT, fs=6)
@@ -305,8 +304,7 @@ def robot(preview):
     c.note(A + wa + 0.15, 9.35, 'CH1, CH2,\nCH5, CH6', fs=fs, va='bottom')
     c.path([c.side('bump', 'r'), (B, 6.8)])
     c.note(A + wa + 0.15, 6.95, 'contact', fs=fs, va='bottom')
-    c.path([c.side('gnss', 'r'), (B, 15.4)])
-    c.path([c.side('imu', 'r'), (B, 12.6)])
+    c.path([c.side('imu', 'r'), (B, 14.0)])
     # companion <-> controller
     c.path([(B + 2.2, 11.5), (B + 2.2, 9.7)])
     c.path([(B + 3.4, 9.7), (B + 3.4, 11.5)])

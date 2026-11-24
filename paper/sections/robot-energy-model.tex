@@ -17,7 +17,8 @@
 %    - The PWM relay module on the BLADE pulse. Its contacts (20 A at 14 V DC)
 %      switch the coil of the blade contactor K1, not the 500 W blade current
 %      (Fig. power-schematic). Explain this choice in one sentence.
-%    - E-stop, bumper, RTK GNSS, IMU, battery V/I monitor, companion computer.
+%    - E-stop, bumper, IMU, battery V/I monitor, companion computer. No GNSS
+%      yet: the simulation takes the pose from Gazebo. Say so as a limit.
 %    - The safety logic as a state machine (Fig. controller-states): ESTOP has
 %      priority, then FAILSAFE, then the mode switch. Explain the re-arm rule
 %      and why the bumper only latches in AUTO.
