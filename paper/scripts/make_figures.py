@@ -134,9 +134,37 @@ def draw_start(ax, lawn, size=1.0):
             zorder=8, linestyle='none')
 
 
+def label_spots(regions, gap):
+    """One point in each region for its label: far from the region's edge and from the
+    labels already placed, so that neighbouring labels in narrow cells do not collide."""
+    from shapely.geometry import Point
+    from shapely.ops import polylabel
+    regions = [max(polys(r), key=lambda g: g.area) for r in regions]
+    placed = {}
+    # Narrow cells have the fewest good spots, so they choose first.
+    for i in sorted(range(len(regions)), key=lambda i: regions[i].area):
+        region = regions[i]
+        x0, y0, x1, y1 = region.bounds
+        cands = [polylabel(region, tolerance=0.05)]
+        cands += [Point(x, y) for x in np.linspace(x0, x1, 15) for y in np.linspace(y0, y1, 15)]
+        best, score = None, -math.inf
+        for c in cands:
+            if not region.contains(c):
+                continue
+            edge = min(region.exterior.distance(c), 1.2)
+            near = min((c.distance(q) for q in placed.values()), default=math.inf)
+            sc = edge - 3.0 * max(0.0, gap - near)
+            if sc > score:
+                best, score = c, sc
+        placed[i] = best
+    return [placed[i] for i in range(len(regions))]
+
+
 def draw_plan(ax, problem, plan, lane_colour=BLUE, link_colour=ORANGE, lw=0.55,
               number_cells=False):
     prev = (None, None)
+    if number_cells:
+        spots = label_spots([to_world(problem, problem.cells[c]) for c in plan.order], gap=3.6)
     for k, (c, a) in enumerate(zip(plan.order, plan.variants)):
         link = problem.links.get((*prev, c, a))
         if link:
@@ -146,7 +174,7 @@ def draw_plan(ax, problem, plan, lane_colour=BLUE, link_colour=ORANGE, lw=0.55,
         xy = points_to_world(problem, problem.routes[c][a])
         ax.plot(xy[:, 0], xy[:, 1], color=lane_colour, lw=lw, zorder=5)
         if number_cells:
-            p = to_world(problem, problem.cells[c]).representative_point()
+            p = spots[k]
             ax.text(p.x, p.y, str(k + 1), ha='center', va='center', fontsize=6.5,
                     color=INK, zorder=9,
                     bbox=dict(boxstyle='circle,pad=0.15', fc='white', ec=INK_2, lw=0.5))
@@ -165,10 +193,11 @@ def frame(ax, area, pad=0.8):
 
 
 def scale_bar(ax, area, length=5.0):
-    x0, y0, _, _ = area.bounds
-    ax.plot([x0, x0 + length], [y0 - 0.55, y0 - 0.55], color=INK, lw=1.2,
+    """Scale bar under the right end of the lawn, clear of the start marker."""
+    _, y0, x1, _ = area.bounds
+    ax.plot([x1 - length, x1], [y0 - 0.55, y0 - 0.55], color=INK, lw=1.2,
             solid_capstyle='butt', clip_on=False)
-    ax.text(x0 + length / 2, y0 - 0.75, f'{length:g} m', ha='center', va='top', fontsize=6.5)
+    ax.text(x1 - length / 2, y0 - 0.75, f'{length:g} m', ha='center', va='top', fontsize=6.5)
 
 
 def legend_below(fig, axes, handles, ncol, gap=0.02):
@@ -228,22 +257,28 @@ def fig_pipeline(preview):
 def fig_lawns(preview):
     """The ten test lawns with their BCD cells (default direction)."""
     lawns = shared_lawns()
-    fig, axes = plt.subplots(2, 5, figsize=(FULL, 3.0))
+    fig, axes = plt.subplots(2, 5, figsize=(FULL, 2.6))
+    # One scale for all panels, so the sizes of the lawns compare at a glance.
+    span_x = max(lw.area.bounds[2] - lw.area.bounds[0] for lw in lawns) + 1.0
+    span_y = max(lw.area.bounds[3] - lw.area.bounds[1] for lw in lawns) + 1.0
     for ax, lawn in zip(axes.flat, lawns):
         problem = problem_for(lawn)
         draw_lawn(ax, lawn.area)
         draw_cells(ax, problem, labels=False)
         draw_start(ax, lawn)
         frame(ax, lawn.area, pad=0.5)
+        x0, y0, x1, y1 = lawn.area.bounds
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        ax.set_xlim(cx - span_x / 2, cx + span_x / 2)
+        ax.set_ylim(cy - span_y / 2, cy + span_y / 2)
         name = lawn.name.replace('_', r'\_')
         ax.set_title(f'$\\mathtt{{{name}}}$\n{len(problem.cells)} cells, '
                      f'{lawn.area.area:.0f} m$^2$', pad=2, fontsize=7)
-        x0, y0, _, _ = lawn.area.bounds
-        ax.plot([x0, x0 + 10], [y0 - 1.2, y0 - 1.2], color=INK, lw=1.0, clip_on=False,
-                solid_capstyle='butt')
-    axes.flat[0].text(lawns[0].area.bounds[0] + 5, lawns[0].area.bounds[1] - 1.6, '10 m',
-                      ha='center', va='top', fontsize=6.5)
-    fig.subplots_adjust(wspace=0.12, hspace=0.45)
+    x0, y0, _, _ = lawns[0].area.bounds
+    axes.flat[0].plot([x0, x0 + 10], [y0 - 1.5, y0 - 1.5], color=INK, lw=1.0,
+                      clip_on=False, solid_capstyle='butt')
+    axes.flat[0].text(x0 + 5, y0 - 2.2, '10 m (all panels)', ha='left', va='top', fontsize=6.5)
+    fig.subplots_adjust(wspace=0.12, hspace=0.35)
     save(fig, 'test-lawns', preview)
 
 
@@ -290,6 +325,7 @@ def fig_energy_model(preview):
     ax = axes[1]
     ax.plot(angles, turn, color=ORANGE)
     ax.set_xlabel('Turn angle $\\varphi$ (deg)')
+    ax.set_ylabel('Battery energy (J)')
     ax.set_xticks([0, 45, 90, 135, 180])
     ax.set_xlim(0, 180)
     ax.set_ylim(0, 52)
@@ -298,12 +334,12 @@ def fig_energy_model(preview):
     ax.annotate(f'90$^\\circ$: {e90:.0f} J\n= {e90_metres:.1f} m straight', xy=(90, e90),
                 xytext=(12, 38), textcoords='data', fontsize=7, color=INK_2,
                 arrowprops=dict(arrowstyle='-', color=MUTED, lw=0.5, shrinkA=2, shrinkB=3))
-    panel_label(ax, '(b)', x=-0.12)
+    panel_label(ax, '(b)', x=-0.2)
 
     ax = axes[2]
     y = np.arange(len(LAWN_ORDER))
-    ax.barh(y + 0.2, share['xie2024'], height=0.38, color=ORANGE, label='Xie et al.')
     ax.barh(y - 0.2, share['energy_direction_ga'], height=0.38, color=BLUE, label='Ours')
+    ax.barh(y + 0.2, share['xie2024'], height=0.38, color=ORANGE, label='Xie et al.')
     ax.set_yticks(y)
     ax.set_yticklabels(LAWN_ORDER, fontsize=6.5,
                        fontfamily='monospace')
@@ -338,41 +374,60 @@ def fig_direction(preview, name='garden'):
     choice = choose_direction(lawn.area, DEFAULT_WIDTH, path_cost(), lawn.start, SWEEP,
                               default=default)
     chosen = choice.problem
-    fig = plt.figure(figsize=(FULL, 2.1))
-    gs = fig.add_gridspec(1, 3, width_ratios=[1, 1, 1.05], wspace=0.28)
-    for k, (problem, title) in enumerate([
-            (default, f'Default (lanes at 90$^\\circ$)\n{len(default.cells)} cells'),
-            (chosen, f'Chosen (lanes at {math.degrees(choice.lane_angle):.0f}'
-                     f'$^\\circ$)\n{len(chosen.cells)} cells')]):
+    scores = sorted((math.degrees(a), e) for a, e in choice.scores if math.isfinite(e))
+    best_angle = math.degrees(choice.lane_angle)
+    e_default = next(e for a, e in scores if abs(a - 90) < 1e-6)
+    e_best = next(e for a, e in scores if abs(a - best_angle) < 1e-6)
+    fig = plt.figure(figsize=(FULL, 2.15))
+    gs = fig.add_gridspec(1, 3, width_ratios=[1, 1, 1.05], wspace=0.3)
+    for k, (problem, angle, energy, label) in enumerate([
+            (default, 90.0, e_default, 'Default'),
+            (chosen, best_angle, e_best, 'Chosen')]):
         ax = fig.add_subplot(gs[k])
         draw_lawn(ax, lawn.area)
-        draw_cells(ax, problem, labels=False, fill='none')
         best = _screen_plan(problem)
         for c, a in zip(best.order, best.variants):
             xy = points_to_world(problem, problem.routes[c][a])
-            ax.plot(xy[:, 0], xy[:, 1], color=BLUE, lw=0.45, zorder=5)
+            ax.plot(xy[:, 0], xy[:, 1], color=BLUE, lw=0.35, alpha=0.7, zorder=4)
+        # Cell borders on top of the lanes, so the decomposition stays readable.
+        for cell in problem.cells:
+            draw_polygon(ax, to_world(problem, cell), facecolor='none', edgecolor=INK,
+                         linewidth=0.8, zorder=5)
         frame(ax, lawn.area)
-        ax.set_title(f'({chr(97 + k)}) {title}', pad=3)
+        ax.set_title(f'({chr(97 + k)}) {label}: lanes at {angle:.0f}°\n'
+                     f'{len(problem.cells)} cells, {energy / 1000:.2f} kJ', pad=3)
     ax = fig.add_subplot(gs[2])
-    scores = [(math.degrees(a), e) for a, e in choice.scores if math.isfinite(e)]
-    scores.sort()
     xs = np.arange(len(scores))
-    best_angle = math.degrees(choice.lane_angle)
     colours = [BLUE if abs(a - best_angle) < 1e-6 else (ORANGE if abs(a - 90) < 1e-6 else MUTED)
                for a, _ in scores]
-    ax.bar(xs, [e / 1000 for _, e in scores], color=colours, width=0.6)
+    # Energy above the chosen direction, from zero, so the bar lengths compare honestly.
+    above = [rel(e, e_best) for _, e in scores]
+    ax.bar(xs, above, color=colours, width=0.6)
+    # The chosen candidate is the zero of the axis: mark it, since its bar has no height.
+    k_best = next(i for i, (a, _) in enumerate(scores) if abs(a - best_angle) < 1e-6)
+    ax.plot([k_best], [0], marker='D', ms=4.5, color=BLUE, ls='none', clip_on=False, zorder=5)
+    for x, v, (a, _) in zip(xs, above, scores):
+        if abs(a - 90) < 1e-6:
+            ax.text(x, v + 0.3, f'+{v:.1f} %', ha='center', va='bottom', fontsize=6.5,
+                    color=INK)
     ax.set_xticks(xs)
-    ax.set_xticklabels([f'{a:.0f}$^\\circ$' for a, _ in scores], fontsize=6.5, rotation=90)
-    lo = min(e for _, e in scores) / 1000
-    hi = max(e for _, e in scores) / 1000
-    ax.set_ylim(lo * 0.9, hi * 1.04)
-    ax.set_ylabel('Screening energy (kJ)', labelpad=2)
+    ax.set_xticklabels([f'{a:.0f}°' for a, _ in scores], fontsize=6.5, rotation=90)
+    ax.set_ylim(0, max(above) * 1.7)
+    ax.set_ylabel('Energy above the chosen (%)', labelpad=2)
     ax.set_xlabel('Candidate lane heading')
-    ax.legend(handles=[PathPatch(Path([(0, 0)]), fc=ORANGE, label='Default'),
-                       PathPatch(Path([(0, 0)]), fc=BLUE, label='Chosen')],
-              loc='upper left', handlelength=1)
-    ax.set_title('(c) Energy of each candidate', pad=3)
+    ax.legend(handles=[PathPatch(Path([(0, 0)]), fc=ORANGE, label='Default (90°)'),
+                       PathPatch(Path([(0, 0)]), fc=BLUE, label='Chosen'),
+                       PathPatch(Path([(0, 0)]), fc=MUTED, label='Other candidates')],
+              loc='upper right', handlelength=1, borderaxespad=0.2)
+    ax.set_title('(c) Screening energy of each candidate', pad=3)
+    for lab, (a, _) in zip(ax.get_xticklabels(), scores):
+        if abs(a - best_angle) < 1e-6:
+            lab.set_color(BLUE)
+        elif abs(a - 90) < 1e-6:
+            lab.set_color(ORANGE)
     save(fig, 'direction-choice', preview)
+    print(f'  default {e_default / 1000:.2f} kJ, chosen {best_angle:.0f} deg '
+          f'{e_best / 1000:.2f} kJ ({rel(e_best, e_default):.1f} %)')
 
 
 def _screen_plan(problem):
@@ -425,7 +480,6 @@ def fig_energy_results(preview):
     data = rows()
     full = _paired(data, 'energy_direction_ga', 'xie2024')
     same = _paired(data, 'energy_direction_ga', 'xie2024_direction')
-    direction = _paired(data, 'xie2024_direction', 'xie2024')
     fig, axes = plt.subplots(1, 2, figsize=(FULL, 2.6), sharey=True,
                              gridspec_kw={'width_ratios': [1.25, 1]})
     y = np.arange(len(LAWN_ORDER))
@@ -448,21 +502,31 @@ def fig_energy_results(preview):
     ax.set_xlabel('Energy difference of ours (%)')
     ax.grid(True, axis='x')
     ax.set_axisbelow(True)
-    ax.set_title('Paired by seed (bar: median of 10 seeds)', pad=3)
+    ax.set_title('Paired by seed (dots: 10 seeds, tick: median)', pad=3)
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=2, handletextpad=0.3)
     panel_label(ax, '(a)', x=-0.2)
 
     ax = axes[1]
-    dmean = [statistics.mean(direction[n]) for n in LAWN_ORDER]
-    omean = [statistics.mean(same[n]) for n in LAWN_ORDER]
-    ax.barh(y - 0.19, dmean, height=0.36, color=YELLOW, label='Direction alone')
-    ax.barh(y + 0.19, omean, height=0.36, color=AQUA, label='Ordering alone')
+    # Both parts in % of the energy of Xie et al., so they add up to the total of (a).
+    index = {(r['map'], r['method'], r['seed']): float(r['energy']) for r in data}
+    dmean, omean, tmean = [], [], []
+    for n in LAWN_ORDER:
+        seeds = [s for s in map(str, range(10)) if (n, 'xie2024', s) in index]
+        base = [index[(n, 'xie2024', s)] for s in seeds]
+        mid = [index[(n, 'xie2024_direction', s)] for s in seeds]
+        ours = [index[(n, 'energy_direction_ga', s)] for s in seeds]
+        dmean.append(statistics.mean(100 * (m - b) / b for m, b in zip(mid, base)))
+        omean.append(statistics.mean(100 * (o - m) / b for o, m, b in zip(ours, mid, base)))
+        tmean.append(statistics.mean(100 * (o - b) / b for o, b in zip(ours, base)))
+    ax.barh(y, dmean, height=0.55, color=YELLOW, label='Direction choice')
+    ax.barh(y, omean, left=dmean, height=0.55, color=AQUA, label='Energy ordering')
+    ax.plot(tmean, y, marker='|', ms=9, mew=1.2, color=INK, ls='none', label='Total')
     ax.axvline(0, color=INK_2, lw=0.6)
-    ax.set_xlabel('Mean energy difference (%)')
+    ax.set_xlabel('Mean energy difference to Xie et al. (%)')
     ax.grid(True, axis='x')
     ax.set_axisbelow(True)
     ax.set_title('Split of the gain', pad=3)
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=2, handlelength=1)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.2), ncol=3, handlelength=1)
     panel_label(ax, '(b)', x=-0.04)
     fig.subplots_adjust(wspace=0.08)
     save(fig, 'energy-results', preview)
@@ -516,7 +580,10 @@ def fig_convergence(preview, seeds=10, budget=20000):
     np.atleast_1d(axes)[0].set_ylabel('Gap to optimum (%)')
     handles, labels = np.atleast_1d(axes)[0].get_legend_handles_labels()
     fig.subplots_adjust(wspace=0.08, top=0.8)
-    fig.legend(handles, labels, loc='lower center', ncol=2, bbox_to_anchor=(0.5, 0.9),
+    from matplotlib.patches import Patch
+    handles.append(Patch(fc=MUTED, alpha=0.35, lw=0))
+    labels = [f'{l}, median of {seeds} seeds' for l in labels] + ['25–75 % of seeds']
+    fig.legend(handles, labels, loc='lower center', ncol=3, bbox_to_anchor=(0.5, 0.9),
                handlelength=1.5)
     save(fig, 'convergence', preview)
 
@@ -529,8 +596,8 @@ def fig_fuzzy(preview):
     fig = plt.figure(figsize=(FULL, 2.0))
     gs = fig.add_gridspec(1, 3, width_ratios=[1, 1, 1.15], wspace=0.42)
     for k, (centres, xlabel, scale) in enumerate([
-            (tracker.CROSS_TRACK_CENTRES, 'Cross-track error $e_y$ (m)', 1.0),
-            (tracker.HEADING_CENTRES, 'Heading error $e_\\psi$ (deg)', 180 / math.pi)]):
+            (tracker.CROSS_TRACK_CENTRES, 'Cross-track error $e_y$ (m)\n(+: left of the lane)', 1.0),
+            (tracker.HEADING_CENTRES, 'Heading error $e_\\psi$ (deg)\n(+: pointing left)', 180 / math.pi)]):
         ax = fig.add_subplot(gs[k])
         span = centres[-1] - centres[0]
         xs = np.linspace(centres[0] - 0.25 * span, centres[-1] + 0.25 * span, 400)
@@ -560,6 +627,8 @@ def fig_fuzzy(preview):
     ax.set_ylabel('Heading error $e_\\psi$ (deg)')
     cb = fig.colorbar(im, ax=ax, fraction=0.06, pad=0.03)
     cb.set_label('Steering command\n(share of turn-rate limit)', fontsize=7)
+    cb.set_ticks([-0.8, -0.4, 0, 0.4, 0.8])
+    cb.set_ticklabels(['−0.8 right', '−0.4', '0', '0.4', '0.8 left'])
     cb.outline.set_linewidth(0.4)
     cb.ax.tick_params(labelsize=6.5)
     panel_label(ax, '(c)', x=-0.2, y=1.02)

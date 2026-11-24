@@ -91,20 +91,25 @@ def power(preview):
     fs = 6.5
 
     # Battery B1, main fuse F1, emergency stop S1 and the battery current shunt
+    logic = top + 2.6   # +24 V before S1: the logic supply stays on after an emergency stop
     d.add(elm.Battery().up().at((0, 0.6)).to((0, 3.4)).reverse())
     text(d, (-2.4, 2.0), 'B1\n25.6 V\nLiFePO$_4$\n100 Ah\nwith BMS', halign='right', fontsize=fs)
-    wire(d, [(0, 3.4), (0, top)], POWER)
-    d.add(elm.Fuse().right().at((0, top)).to((2.2, top)).color(POWER))
-    text(d, (1.1, top - 0.95), 'F1', halign='center', fontsize=fs)
-    d.add(elm.Button(nc=True).right().at((2.2, top)).to((4.8, top)))
-    text(d, (3.5, top + 1.7), 'S1 emergency stop\n(NC, latching)', halign='center', fontsize=fs)
-    wire(d, [(4.8, top), (55.8, top)], POWER)
-    text(d, (56.0, top), '+24 V', fontsize=fs)
+    d.add(elm.Fuse().up().at((0, 3.4)).to((0, 5.4)).color(POWER))
+    text(d, (-0.5, 4.4), 'F1', halign='right', fontsize=fs)
+    wire(d, [(0, 5.4), (0, logic)], POWER)
+    dot(d, (0, top), POWER)
+    d.add(elm.Button(nc=True).right().at((0, top)).to((2.6, top)))
+    text(d, (0.3, top + 0.75), 'S1 emergency stop\n(NC, latching)', valign='bottom', fontsize=fs)
+    wire(d, [(2.6, top), (33.0, top)], POWER)
+    text(d, (33.2, top), '+24 V drive', fontsize=fs)
+    wire(d, [(0, logic), (45.4, logic)], POWER)
+    text(d, (22.6, logic + 0.25), '+24 V logic, before S1: the controller stays on to latch '
+         'the emergency stop', halign='center', valign='bottom', fontsize=fs)
     wire(d, [(0, 0.6), (0, gnd)])
     d.add(elm.Rshunt().right().at((0, gnd)).to((2.6, gnd)))
     text(d, (1.3, gnd - 2.5), 'R$_\\mathrm{sh}$: battery\nV/I sense', halign='center', fontsize=fs)
-    wire(d, [(2.6, gnd), (55.8, gnd)])
-    text(d, (56.0, gnd), '0 V', fontsize=fs)
+    wire(d, [(2.6, gnd), (58.6, gnd)])
+    text(d, (58.8, gnd), '0 V', fontsize=fs)
     d.add(elm.Ground().at((4.4, gnd)))
     dot(d, (4.4, gnd))
 
@@ -119,16 +124,16 @@ def power(preview):
     dot(d, (xv, gnd))
     pin(d, (xv, y0 + h), 'B+', 'top')
     pin(d, (xv, y0), 'B−', 'bot')
-    for y, name, txt in ((y0 + 5.2, 'IN1', 'left pulse'), (y0 + 3.6, 'IN2', 'right pulse')):
+    for y, name, txt in ((y0 + 5.2, 'IN1', 'right pulse'), (y0 + 3.6, 'IN2', 'left pulse')):
         wire(d, [(x0 - 0.8, y), (x0, y)])
         pin(d, (x0, y), name, 'left')
         text(d, (x0 - 1.2, y), txt, halign='right', fontsize=fs)
-    pins = {'L+': y0 + 5.6, 'L−': y0 + 3.9, 'R+': y0 + 2.5, 'R−': y0 + 0.8}
+    pins = {'R+': y0 + 5.6, 'R−': y0 + 3.9, 'L+': y0 + 2.5, 'L−': y0 + 0.8}
     for p, y in pins.items():
         pin(d, (x0 + w, y), p, 'right')
     xs = (x0 + w + 1.1, x0 + w + 2.5)
-    for side, plus, minus, names in (('left', 'L+', 'L−', 'M1, M2'),
-                                     ('right', 'R+', 'R−', 'M3, M4')):
+    for side, plus, minus, names in (('right', 'R+', 'R−', 'M1, M2'),
+                                     ('left', 'L+', 'L−', 'M3, M4')):
         yp, ym = pins[plus], pins[minus]
         wire(d, [(x0 + w, yp), (xs[1], yp)], POWER)
         wire(d, [(x0 + w, ym), (xs[1], ym)], POWER)
@@ -140,7 +145,7 @@ def power(preview):
              fontsize=fs)
 
     # Blade: fuse F2, contactor contacts K1, blade motor M5
-    xb = 24.6
+    xb = 25.2
     dot(d, (xb, top), POWER)
     d.add(elm.Fuse().down().at((xb, top)).to((xb, top - 1.6)).color(POWER))
     text(d, (xb - 0.5, top - 0.8), 'F2', halign='right', fontsize=fs)
@@ -149,12 +154,12 @@ def power(preview):
     text(d, (xb - 0.5, top - 2.7), 'K1', halign='right', fontsize=fs)
     wire(d, [(xb, top - 3.6), (xb, 1.4)], POWER)
     d.add(elm.Motor().down().at((xb, 1.4)).to((xb, -0.6)).color(POWER))
-    text(d, (xb + 0.7, 0.4), 'M5 blade\n24 V, 500 W\n6000 rpm', fontsize=fs)
+    text(d, (xb + 0.8, 0.4), 'M5 blade\n24 V, 500 W\n6000 rpm', fontsize=fs)
     wire(d, [(xb, -0.6), (xb, gnd)], POWER)
     dot(d, (xb, gnd))
 
     # K1 coil, switched by the relay contact of RLY1, with flyback diode D1
-    xc = 30.0
+    xc = 31.6
     dot(d, (xc, top), POWER)
     d.add(elm.Switch().down().at((xc, top)).to((xc, top - 1.8)))
     text(d, (xc - 0.5, top - 0.9), 'RLY1\nCOM–NO', halign='right', fontsize=fs)
@@ -173,7 +178,7 @@ def power(preview):
          color=INK_2, ls='--', lw=0.6)
 
     # RLY1: the PWM relay module (RC switch) and its servo lead
-    mx, my, mw, mh = 34.6, 3.2, 7.4, 2.6
+    mx, my, mw, mh = 36.0, 2.9, 7.8, 3.0
     box(d, mx, my, mw, mh, 'RLY1 PWM relay\nmodule (RC switch)', RETROFIT, fontsize=fs)
     wire(d, [(xc + 0.35, top - 0.9), (mx + mw / 2, top - 0.9), (mx + mw / 2, my + mh)],
          color=INK_2, ls='--', lw=0.6)
@@ -181,18 +186,17 @@ def power(preview):
         x = mx + 1.2 + 1.9 * k
         wire(d, [(x, my), (x, my - 0.9)])
         text(d, (x + 0.25, my - 0.5), name, fontsize=fs)
-    text(d, (mx, my - 2.7), 'servo lead to controller:\nS white: BLADE pulse\n'
+    text(d, (mx - 0.8, my - 2.7), 'servo lead to controller:\nS white: BLADE pulse\n'
          '+ red: +5 V, − black: 0 V', fontsize=fs)
 
     # Logic supplies U2 (5 V) and U3 (12 V) after fuse F3
-    xf = 44.2
-    dot(d, (xf, top), POWER)
-    d.add(elm.Fuse().down().at((xf, top)).to((xf, top - 1.6)).color(POWER))
-    text(d, (xf - 0.5, top - 0.8), 'F3', halign='right', fontsize=fs)
-    bx, bw, bh = 45.2, 4.6, 2.6
+    xf = 45.4
+    d.add(elm.Fuse().down().at((xf, logic)).to((xf, logic - 1.6)).color(POWER))
+    text(d, (xf - 0.5, logic - 0.8), 'F3', halign='right', fontsize=fs)
+    bx, bw, bh = 46.4, 4.6, 2.6
     outs = (('U2 DC-DC\n24 → 5 V', '+5 V: receiver,\ncontroller, RLY1,\nGNSS, IMU', 3.4),
             ('U3 DC-DC\n24 → 12 V', '+12 V:\ncompanion\ncomputer', 0.0))
-    wire(d, [(xf, top - 1.6), (xf, outs[1][2] + 1.3)], POWER)
+    wire(d, [(xf, logic - 1.6), (xf, outs[1][2] + 1.3)], POWER)
     for name, out, by in outs:
         box(d, bx, by, bw, bh, name, RETROFIT, fontsize=fs)
         wire(d, [(xf, by + 1.3), (bx, by + 1.3)], POWER)
@@ -282,9 +286,10 @@ def robot(preview):
           '(BCD, energy GA)\nEKF localisation\nmission, fuzzy tracker', RETROFIT)
     c.box('ctl', B, 5.8, wb, 3.9, 'Real-time controller', 'modes: ESTOP, FAILSAFE,\n'
           'MANUAL, AUTO\ncommand watchdog', RETROFIT)
-    c.box('estop', B - 1.0, 2.6, 3.0, 1.9, 'E-stop', 'NC, latching', RETROFIT, fs=6)
-    c.box('mon', B + 3.4, 2.6, 3.0, 1.9, 'V/I monitor', 'shunt', RETROFIT, fs=6)
-    c.box('dcdc', B, 0.6, wb, 1.4, 'Fuses, DC-DC to 5 V, 12 V', fill=RETROFIT, fs=6)
+    c.box('mon', B - 1.0, 2.6, 3.0, 1.9, 'V/I monitor', 'shunt', RETROFIT, fs=6)
+    c.box('estop', B + 3.4, 2.6, 3.0, 1.9, 'E-stop', 'NC, latching', RETROFIT, fs=6)
+    c.box('dcdc', B, 0.45, wb, 1.6, 'Fuse, DC-DC to 5 V, 12 V',
+          'for receiver, sensors, computers', fill=RETROFIT, fs=6)
 
     c.box('drv', C, 11.0, wc, 2.8, 'Motor driver', 'L-faster, dual\nchannel, RC pulse in')
     c.box('rly', C, 6.6, wc, 2.8, 'PWM relay module', 'RC switch on\nthe BLADE pulse', RETROFIT)
@@ -309,27 +314,28 @@ def robot(preview):
     c.note(B + 3.55, 10.6, 'mode,\nstate', fs=fs)
     # controller -> actuators
     c.path([(B + wb, 9.0), (C - 1.0, 9.0), (C - 1.0, 13.0), (C, 13.0)])
-    c.note(B + wb + 0.15, 9.1, 'left, right pulses', fs=fs, va='bottom')
+    c.note(B + wb + 0.15, 9.1, 'right, left pulses', fs=fs, va='bottom')
     c.path([(B + wb, 8.0), (C, 8.0)])
     c.note(B + wb + 0.15, 8.1, 'BLADE pulse', fs=fs, va='bottom')
     c.path([c.side('rly', 'b'), c.side('k1', 't')])
     c.note(C + wc / 2 + 0.2, 5.9, 'coil', fs=fs)
     c.path([(B + 0.5, 4.5), (B + 0.5, 5.8)])
-    c.note(B + 0.65, 5.15, 'sense', fs=fs)
+    c.note(B + 0.65, 5.15, 'V, I', fs=fs)
     c.path([(B + 5.0, 4.5), (B + 5.0, 5.8)])
-    c.note(B + 5.15, 5.15, 'V, I', fs=fs)
+    c.note(B + 5.15, 5.15, 'sense', fs=fs)
 
-    # power: battery -> e-stop -> monitor -> 24 V bus -> driver, blade relay chain, DC-DC
+    # power: battery -> monitor -> logic DC-DC (before the e-stop) -> e-stop -> drive bus
     lwp = 1.6
     y = 3.55
     c.path([(A + wa, y), (B - 1.0, y)], color=POWER, lw=lwp, arrow=False)
     c.path([(B + 2.0, y), (B + 3.4, y)], color=POWER, lw=lwp, arrow=False)
+    c.path([(B + 2.7, y), (B + 2.7, 2.05)], color=POWER, lw=lwp)
+    ax.plot([B + 2.7], [y], 'o', color=POWER, ms=2.5, zorder=5)
     c.path([(B + 6.4, y), (C - 0.5, y)], color=POWER, lw=lwp, arrow=False)
     c.path([(C - 0.5, y), (C, y)], color=POWER, lw=lwp)
     c.path([(C - 0.5, y), (C - 0.5, 11.7), (C, 11.7)], color=POWER, lw=lwp)
-    c.path([(C - 0.5, y), (C - 0.5, 1.3), (B + wb, 1.3)], color=POWER, lw=lwp)
     ax.plot([C - 0.5], [y], 'o', color=POWER, ms=2.5, zorder=5)
-    c.note(C - 0.35, 2.4, '+24 V', fs=fs, va='top')
+    c.note(C - 0.35, 2.4, '+24 V drive', fs=fs, va='top')
     c.path([c.side('drv', 'r'), c.side('wheels', 'l')], color=POWER, lw=lwp)
     c.path([c.side('k1', 'r'), c.side('blade', 'l')], color=POWER, lw=lwp)
 
@@ -372,6 +378,8 @@ def controller_wiring(preview):
     rows = {'CH1': 13.0, 'CH2': 12.0, 'CH3': 11.0, 'CH4': 10.0, 'CH5': 9.0, 'CH6': 8.0,
             '+5 V': 6.6, '0 V': 5.6}
     pins(4.9, [(y, n) for n, y in rows.items()], 'r')
+    for n, use in (('CH1', 'right'), ('CH2', 'left'), ('CH5', 'mode'), ('CH6', 'blade')):
+        c.note(0.6, rows[n], use, fs=fs, color=MUTED)
     for n in ('CH3', 'CH4'):
         c.note(5.2, rows[n], 'not used', fs=fs, color=MUTED)
 
@@ -388,7 +396,7 @@ def controller_wiring(preview):
            ha='center', fs=fs, color=INK_2)
     left = [(13.0, 'RC1 in'), (12.0, 'RC2 in'), (9.0, 'RC5 in'), (8.0, 'RC6 in'),
             (3.4, 'BUMP in'), (1.2, 'ESTOP in')]
-    right = [(13.0, 'PWM L out'), (12.0, 'PWM R out'), (9.0, 'BLADE out'),
+    right = [(13.0, 'PWM R out'), (12.0, 'PWM L out'), (9.0, 'BLADE out'),
              (6.0, 'UART TX'), (5.0, 'UART RX'), (3.4, 'I²C SDA'), (2.4, 'I²C SCL')]
     pins(X0, left, 'l')
     pins(X1, right, 'r')
@@ -422,7 +430,7 @@ def controller_wiring(preview):
     c.note((Rx0 + Rx1) / 2 + 0.6, 2.9, 'Battery\nV/I sensor', ha='center', fs=6, color=INK,
            fontweight='bold')
     pins(Rx0, [(3.4, 'SDA'), (2.4, 'SCL')], 'l')
-    for y, text_ in ((13.0, 'left pulse'), (12.0, 'right pulse'), (9.0, 'BLADE pulse')):
+    for y, text_ in ((13.0, 'right pulse'), (12.0, 'left pulse'), (9.0, 'BLADE pulse')):
         c.path([(X1, y), (Rx0, y)])
         c.note((X1 + Rx0) / 2 + 0.6, y + 0.1, text_, ha='center', va='bottom', fs=fs)
     c.path([(X1, 6.0), (Rx0, 6.0)])
@@ -445,7 +453,7 @@ def state_machine(preview):
     fs = 5.8
     w, h = 4.4, 2.0
     pos = {'MANUAL': (0.4, 4.6), 'AUTO': (17.2, 4.6), 'FAILSAFE': (8.8, 9.0), 'ESTOP': (8.8, 0.3)}
-    body = {'MANUAL': 'sticks drive,\nCH6 runs blade', 'AUTO': 'velocity command\ndrives',
+    body = {'MANUAL': 'sticks drive,\nCH6 runs blade', 'AUTO': 'velocity command drives,\nblade if asked and CH6 on',
             'FAILSAFE': 'neutral, blade off', 'ESTOP': 'neutral, blade off,\nlatched'}
     for k, (x, y) in pos.items():
         c.box(k, x, y, w, h, k, body[k], fill=RETROFIT if k == 'AUTO' else EXISTING, fs=6.2)

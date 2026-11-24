@@ -47,7 +47,7 @@
 \centering
 \includegraphics[width=\textwidth]{power-schematic}
 % DRAFT caption: rewrite in your own words.
-\caption{Power distribution. The emergency stop S1 cuts the whole 24~V bus. The PWM relay module RLY1 (relay SRA-05VDC-CL, contacts rated 20~A at 14~V~DC) is driven by the controller's BLADE pulse and switches the coil of the blade contactor K1, which carries the blade current. D1 is the flyback diode of the coil. Fuse ratings are left to the final wiring.}
+\caption{Power distribution. The emergency stop S1 cuts the 24~V drive bus: the motor driver, the blade and the coil of K1. The logic supply is taken before S1, so the controller stays powered and latches the stop. The PWM relay module RLY1 (relay SRA-05VDC-CL, contacts rated 20~A at 14~V~DC) is driven by the controller's BLADE pulse and switches the coil of the blade contactor K1, which carries the blade current. D1 is the flyback diode of the coil. Fuse ratings are left to the final wiring.}
 \label{fig:power-schematic}
 \end{figure*}
 
