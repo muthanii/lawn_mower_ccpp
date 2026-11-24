@@ -102,8 +102,8 @@ All robot parameters live in one config file, `src/lawn_mower_robot/config/robot
 
 The faculty robot is driven by radio control. Two packages make it autonomous in simulation:
 
-- `src/lawn_mower_electronics` models the electronics: the radio receiver, the controller that the retrofit adds, the motor driver, the blade, the battery monitor, and the GNSS receiver and IMU. See [`src/lawn_mower_electronics/README.md`](src/lawn_mower_electronics/README.md).
-- `src/lawn_mower_navigation` has the localisation, the fuzzy path tracker, the coverage mission and the Gazebo launch. See [`src/lawn_mower_navigation/README.md`](src/lawn_mower_navigation/README.md).
+- `src/lawn_mower_electronics` models the electronics: the radio receiver, the controller that the retrofit adds, the motor driver, the blade, the battery monitor, the IMU and the bumper. There is no GNSS receiver for now: the simulation takes the robot's pose from Gazebo. See [`src/lawn_mower_electronics/README.md`](src/lawn_mower_electronics/README.md).
+- `src/lawn_mower_navigation` has the fuzzy path tracker, the coverage mission and the Gazebo launch. See [`src/lawn_mower_navigation/README.md`](src/lawn_mower_navigation/README.md).
 
 Mow the demo lawn in Gazebo:
 

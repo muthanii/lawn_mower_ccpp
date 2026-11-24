@@ -58,10 +58,7 @@ bumper:
   hold_time: 0.2          # s the bumper stays pressed after the last contact report
 
 sensors:
-  gnss:
-    rate: 10.0            # Hz
-    horizontal_stddev: 0.02  # m, RTK with a fixed solution
-    vertical_stddev: 0.04    # m
+  # No GNSS receiver for now: the simulation takes the pose from Gazebo.
   imu:
     rate: 100.0           # Hz
     gyro_stddev: 0.005    # rad/s

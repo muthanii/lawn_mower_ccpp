@@ -17,12 +17,12 @@ setup(
     zip_safe=True,
     maintainer='Muthana Ali',
     maintainer_email='mothana.alsaady@teebatkarbala.iq',
-    description='Autonomous coverage: localisation, fuzzy path tracking, mission and simulation.',
+    description='Autonomous coverage: fuzzy path tracking, mission and simulation.',
     license='MIT',
     extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
-            'localization = lawn_mower_navigation.localization_node:main',
+            'sim_pose = lawn_mower_navigation.sim_pose_node:main',
             'mission = lawn_mower_navigation.mission_node:main',
             'evaluator = lawn_mower_navigation.evaluator_node:main',
             'lawn_world = lawn_mower_navigation.world:main',

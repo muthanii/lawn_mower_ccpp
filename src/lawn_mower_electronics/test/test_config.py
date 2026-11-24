@@ -17,7 +17,8 @@ def raw():
 def test_loads(electronics):
     assert electronics.name == 'faculty_robot'
     assert electronics.rc.channels.blade == 6
-    assert electronics.sensors.gnss.rate > 0
+    assert electronics.sensors.imu.rate > 0
+    assert not hasattr(electronics.sensors, 'gnss')
 
 
 def test_missing_and_unknown_keys_are_listed_together():
