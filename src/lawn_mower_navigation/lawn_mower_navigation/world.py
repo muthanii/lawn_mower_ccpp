@@ -10,10 +10,6 @@ from shapely.geometry import LineString, Polygon
 
 from lawn_mower_electronics.sensors import world_sdf
 
-# Geographic origin of the simulated world, (degrees north, degrees east) of
-# its (0, 0). It is a fixed made-up point: any place works, because the
-# localisation only uses offsets from it.
-WORLD_ORIGIN = (33.0, 44.0)
 DEFAULT_STEP = 0.004       # s, physics step
 UNTHROTTLED = 0.0          # real_time_factor: as fast as the computer can
 OBSTACLE_HEIGHT = 0.6      # m
@@ -60,8 +56,7 @@ def _boundary(lawn):
     </model>"""
 
 
-def lawn_world_sdf(lawn, name='lawn', origin=WORLD_ORIGIN,
-                   step=DEFAULT_STEP, real_time_factor=UNTHROTTLED):
+def lawn_world_sdf(lawn, name='lawn', step=DEFAULT_STEP, real_time_factor=UNTHROTTLED):
     """SDF world of a lawn polygon (obstacles are its holes)."""
     xmin, ymin, xmax, ymax = lawn.bounds
     size = f'{xmax - xmin + 2 * GROUND_MARGIN:.4g} {ymax - ymin + 2 * GROUND_MARGIN:.4g}'
@@ -78,7 +73,7 @@ def lawn_world_sdf(lawn, name='lawn', origin=WORLD_ORIGIN,
     <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
     <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
     <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
-    {world_sdf(origin)}
+    {world_sdf()}
 
     <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>

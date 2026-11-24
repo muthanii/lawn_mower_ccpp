@@ -22,7 +22,9 @@ transmitter ──radio──> receiver ──> controller ──pulses──> m
 | Blade | Relay chain and 24 V motor | One switch, with a spin-up lag and a power draw. | `blade` |
 | Bumper | Added by the retrofit | A Gazebo contact sensor on the chassis. Pressed until 0.2 s after the last contact. | `bumper` |
 | Battery monitor | Added by the retrofit | Traction, blade and auxiliary energy, voltage sag, state of charge. | `power_monitor` |
-| GNSS receiver and IMU | Added by the retrofit | Gazebo sensors with noise (`sensors.py`). | Gazebo |
+| IMU | Added by the retrofit | A Gazebo sensor with noise (`sensors.py`). | Gazebo |
+
+There is no GNSS receiver for now. The simulation takes the robot's pose from Gazebo (`sim_pose` in `lawn_mower_navigation`).
 
 The emergency stop is a hardware cut on the real robot. In the model it removes the supply of the motor driver and of the blade, and the controller latches it.
 
@@ -78,5 +80,5 @@ The topic names are in `topics.py`. `lawn_mower_navigation` starts these nodes t
 | `motor_driver` | The L-faster driver. | Its deadband and its pulse range. Put them in the config. |
 | `rc_receiver` | The MC7RB-V2. | The failsafe values, with the transmitter off. |
 | `power_monitor` | A voltage and current sensor on the battery. | The energy model against measured energy. |
-| GNSS and IMU | An RTK receiver and an IMU. | The noise values in the config. |
+| IMU | An IMU. | The noise values in the config. |
 | `bumper` | A contact strip wired to the controller. | That it also covers the wheels. |

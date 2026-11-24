@@ -5,9 +5,10 @@
 
 Starts Gazebo with the world of the lawn and the robot of the config, the
 electronics models (radio, controller, motor driver, blade, battery), the
-localisation, the mission and the evaluator. A scripted operator switches the
-radio to automatic mode `auto_after` seconds in. The launch ends when the
-evaluator has written the results.
+pose from Gazebo (there is no GNSS receiver for now), the mission and the
+evaluator. A scripted operator switches the radio to automatic mode
+`auto_after` seconds in. The launch ends when the evaluator has written the
+results.
 """
 
 import os
@@ -24,9 +25,9 @@ from launch_ros.actions import Node
 
 from lawn_mower_electronics import topics as hw
 from lawn_mower_electronics.config import load_electronics_config, resolve_electronics_config
-from lawn_mower_electronics.sensors import CONTACT_TOPIC, GNSS_TOPIC, IMU_TOPIC, sensors_sdf
+from lawn_mower_electronics.sensors import CONTACT_TOPIC, IMU_TOPIC, sensors_sdf
 from lawn_mower_navigation.lawns import find_lawn
-from lawn_mower_navigation.world import WORLD_ORIGIN, lawn_world_sdf
+from lawn_mower_navigation.world import lawn_world_sdf
 from lawn_mower_robot.robot_config import load_robot_config, resolve_robot_config
 from lawn_mower_robot.sdf_model import build_sdf
 
@@ -39,7 +40,6 @@ ARGUMENTS = (
     ('seed', '0', 'Seed of the ordering method'),
     ('budget', '0', 'Evaluated orders of the ordering method, 0 for its default'),
     ('speed_fraction', '0.5', 'Driving speed as a fraction of the robot limits'),
-    ('speed_source', 'pulses', 'Speed for localisation: pulses or odometry'),
     ('auto_after', '3.0', 'Seconds before the operator switches to automatic mode'),
     ('clearance', '-1', 'Distance the robot centre keeps from edges and obstacles [m]; '
                         '-1 for the radius the body sweeps in a turn plus a margin'),
@@ -88,17 +88,14 @@ def launch_setup(context):
                  '/odom@nav_msgs/msg/Odometry[gz.msgs.Odometry',
                  f'{hw.GROUND_TRUTH}@nav_msgs/msg/Odometry[gz.msgs.Odometry',
                  f'{IMU_TOPIC}@sensor_msgs/msg/Imu[gz.msgs.IMU',
-                 f'{GNSS_TOPIC}@sensor_msgs/msg/NavSatFix[gz.msgs.NavSat',
                  f'{CONTACT_TOPIC}@ros_gz_interfaces/msg/Contacts[gz.msgs.Contacts',
              ]),
         Node(package='lawn_mower_electronics', executable='electronics', output='screen',
              parameters=[both]),
         Node(package='lawn_mower_electronics', executable='rc_transmitter', output='screen',
              parameters=[dict(both, auto_after=float(arg['auto_after']))]),
-        Node(package='lawn_mower_navigation', executable='localization', output='screen',
-             parameters=[dict(both, initial_heading=float(heading),
-                              speed_source=arg['speed_source'],
-                              origin=list(WORLD_ORIGIN))]),
+        Node(package='lawn_mower_navigation', executable='sim_pose', output='screen',
+             parameters=[common]),
         Node(package='lawn_mower_navigation', executable='mission', output='screen',
              parameters=[dict(run, budget=int(arg['budget']),
                               speed_fraction=float(arg['speed_fraction']),

@@ -1,6 +1,6 @@
 # lawn_mower_navigation
 
-Autonomous coverage for the lawn mower robot, and its simulation in Gazebo: localisation, a fuzzy path tracker, the mission, and an evaluator that scores the run.
+Autonomous coverage for the lawn mower robot, and its simulation in Gazebo: a fuzzy path tracker, the mission, and an evaluator that scores the run.
 
 ## Run the simulation
 
@@ -8,7 +8,7 @@ Autonomous coverage for the lawn mower robot, and its simulation in Gazebo: loca
 ros2 launch lawn_mower_navigation coverage_sim.launch.py
 ```
 
-The launch starts Gazebo with the lawn and the robot, the electronics models of `lawn_mower_electronics`, the localisation, the mission and the evaluator. A scripted operator switches the radio to automatic mode after 3 s. The robot then mows the lawn, and the launch ends when the results are written.
+The launch starts Gazebo with the lawn and the robot, the electronics models of `lawn_mower_electronics`, the pose from Gazebo, the mission and the evaluator. A scripted operator switches the radio to automatic mode after 3 s. The robot then mows the lawn, and the launch ends when the results are written.
 
 | Argument | Default | Meaning |
 | --- | --- | --- |
@@ -20,29 +20,28 @@ The launch starts Gazebo with the lawn and the robot, the electronics models of 
 | `seed`, `budget` | `0`, `0` | Seed and evaluation budget of the method. `0` is the method's default budget. `energy_direction_ga` needs more than its direction choice uses. |
 | `speed_fraction` | `0.5` | Driving speed as a fraction of the robot's limits. |
 | `clearance` | `-1` | Distance the robot centre keeps from edges and obstacles [m]. `-1` is the radius the body sweeps in a turn, plus 0.1 m. |
-| `speed_source` | `pulses` | Speed for the localisation: `pulses` (no encoders) or `odometry`. |
 | `real_time_factor` | `1` | Simulation speed. The runs below used 2 and 3. Without a limit (`0`, about 11 on a 4-core machine) the message delays, which stay the same in real time, disturbed the control. |
 | `headless` | `false` | Run without the Gazebo window. |
 | `results_dir` | `mission_results` | Folder for the results. |
 
 The results are in `results_dir`:
 
-- `mission.csv`: one row for each run, with the duration, distance, coverage, overlap, tracking error, localisation error and the traction, blade and auxiliary energy.
+- `mission.csv`: one row for each run, with the duration, distance, coverage, overlap, tracking error, localisation error (zero while the pose comes from Gazebo) and the traction, blade and auxiliary energy.
 - `trajectory.csv`: the true path of the last run, with the blade state.
 
 ## Nodes
 
 | Node | Input | Output |
 | --- | --- | --- |
-| `localization` | GNSS fixes, gyro, pulses to the motor driver | `/localization/odom` |
+| `sim_pose` | Gazebo ground truth | `/localization/odom` |
 | `mission` | Pose, controller state, blade state | `/cmd_vel`, `/blade/request`, `/mission/path`, `/mission/status` |
 | `evaluator` | Gazebo ground truth, blade state, energy | `mission.csv`, `trajectory.csv` |
 
-### Localisation
+### Pose
 
-`localization.py` is an extended Kalman filter on the pose. The gyro and the forward speed drive the prediction, and each GNSS fix corrects the position. The robot has no wheel encoders, so the forward speed is the speed that the pulses to the motor driver ask for, passed through a model of the driver's lag and the acceleration limit.
+The robot has no GNSS receiver for now, so the simulation does not estimate the pose. `sim_pose` passes the true pose from Gazebo to the mission, on `/localization/odom` in the lawn frame. The tracking and coverage results therefore leave out localisation error.
 
-The first heading is the `initial_heading` parameter. Driving corrects it. On the real robot, start the mission with the robot on a known heading, or use a GNSS receiver with two antennas.
+`localization.py` keeps an extended Kalman filter for when a position sensor is added: the gyro and the forward speed drive the prediction, and each position fix corrects it. The robot has no wheel encoders, so its `SpeedModel` takes the forward speed from the pulses to the motor driver, through a model of the driver's lag and the acceleration limit. No node runs the filter now.
 
 ### Path tracking
 
@@ -162,12 +161,12 @@ Coverage and overlap count the swath of each short piece of the driven path, as 
 
 In all four runs a corner of the body passed the lawn edge by 1 cm to 2 cm, in a turn at the end of a lane: the robot stops up to 0.1 m late there, which uses up the margin of the turn. To get more room, raise `clearance` (lanes) and `pivot_edge` in `Margins` (contour passes). The body never touched an obstacle.
 
-These numbers use the estimate config. They show that the simulation works. They are not results for the paper.
+These numbers use the estimate config. They show that the simulation works. They are not results for the paper. They were made with the GNSS and EKF localisation that the simulation had then; the pose now comes from Gazebo.
 
 ## Limits
 
 - The ground is flat. The grass is not simulated: the blade draws its full cutting power whenever it spins.
 - The robot senses an obstacle only when its bumper touches it. It has no lidar or camera. It stays clear of the obstacles in the lawn polygon.
 - The bumper covers the chassis, not the wheels, which stand out to the sides.
-- The simulation was run without the Gazebo window (`headless:=true`) only.
+- The reference runs above were headless (`headless:=true`). [`docs/`](../../docs/README.md) has screenshots of runs with the Gazebo window.
 - The electronics are behavioural models, not the firmware of the real parts.

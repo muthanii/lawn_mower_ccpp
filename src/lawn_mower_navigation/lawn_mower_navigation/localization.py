@@ -1,4 +1,8 @@
-"""Pose estimate from the GNSS receiver, the gyro and the driven speed.
+"""Pose estimate from a position sensor, the gyro and the driven speed.
+
+No node uses this filter for now: the robot has no GNSS receiver, and the
+simulation takes the pose from Gazebo (sim_pose_node.py). It stays for when
+a position sensor is added.
 
 An extended Kalman filter on the pose (x east, y north, heading). The gyro
 yaw rate and the forward speed drive the prediction; each GNSS fix corrects

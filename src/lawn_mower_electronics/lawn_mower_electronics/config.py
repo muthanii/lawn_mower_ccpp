@@ -18,11 +18,10 @@ KEYS = {
     'blade': ('rated_speed', 'time_constant', 'running_fraction', 'idle_power_fraction'),
     'battery': ('internal_resistance', 'cutoff_voltage'),
     'bumper': ('hold_time',),
-    'sensors': ('gnss', 'imu'),
+    'sensors': ('imu',),
 }
 CHANNELS = ('right', 'left', 'mode', 'blade')
-SENSOR_KEYS = {'gnss': ('rate', 'horizontal_stddev', 'vertical_stddev'),
-               'imu': ('rate', 'gyro_stddev', 'accel_stddev')}
+SENSOR_KEYS = {'imu': ('rate', 'gyro_stddev', 'accel_stddev')}
 
 
 class ElectronicsConfigError(ValueError):
