@@ -50,7 +50,7 @@ Visualization Manager:
         Value: false
       Value: true
     - Class: rviz_default_plugins/Odometry
-      Name: EKF estimate (/localization/odom)
+      Name: Mission pose (/localization/odom)
       Enabled: true
       Topic:
         Value: /localization/odom
@@ -66,12 +66,7 @@ Visualization Manager:
         Head Length: 0.25
         Head Radius: 0.15
       Covariance:
-        Value: true
-        Position:
-          Value: true
-          Scale: 3
-        Orientation:
-          Value: false
+        Value: false
       Value: true
   Global Options:
     Background Color: 250; 250; 248

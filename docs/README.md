@@ -4,6 +4,8 @@ Screenshots of the Gazebo simulation, the results of the runs they come from, an
 
 All runs use the `faculty_robot_estimate` robot config, the `faculty_robot` electronics config, the `energy_ga` ordering with seed 0 and the `hybrid` pattern (lanes, then contour passes along the edges). They show that the simulation works. They are not results for the paper.
 
+There is no GNSS receiver in the simulation for now: the mission takes the robot's pose from Gazebo (`sim_pose`). The tracking error is thus the error of the controller alone, with no localisation error.
+
 ## Contents
 
 | Image | What it shows |
@@ -14,7 +16,7 @@ All runs use the `faculty_robot_estimate` robot config, the `faculty_robot` elec
 | [`demo-coverage.png`](images/demo-coverage.png) | The driven path and the mowed area of the `demo` run, from the evaluator's trajectory. |
 | [`two-beds-gui.png`](images/two-beds-gui.png) | The start of the run on the `two_beds` lawn. |
 | [`two-beds-oblique.png`](images/two-beds-oblique.png), [`two-beds-top.png`](images/two-beds-top.png) | The `two_beds` lawn after the run. |
-| [`two-beds-rviz.png`](images/two-beds-rviz.png) | RViz: the planned path, the true path and the EKF estimate of the `two_beds` run. |
+| [`two-beds-rviz.png`](images/two-beds-rviz.png) | RViz: the planned path and the true path of the `two_beds` run. |
 | [`two-beds-coverage.png`](images/two-beds-coverage.png) | The driven path and the mowed area of the `two_beds` run. |
 
 The figures of the paper are in [`paper/figures/`](../paper/figures). The scripts in [`paper/scripts/`](../paper/scripts) make them.
@@ -25,7 +27,7 @@ The figures of the paper are in [`paper/figures/`](../paper/figures). The script
 ros2 launch lawn_mower_navigation coverage_sim.launch.py lawn:=demo
 ```
 
-The launch starts Gazebo with the lawn and the robot, the electronics models, the localisation, the mission and the evaluator. A scripted operator switches the radio to automatic mode, the robot mows the lawn, and the evaluator writes `mission.csv` and `trajectory.csv`. See [`src/lawn_mower_navigation/README.md`](../src/lawn_mower_navigation/README.md).
+The launch starts Gazebo with the lawn and the robot, the electronics models, the pose from Gazebo, the mission and the evaluator. A scripted operator switches the radio to automatic mode, the robot mows the lawn, and the evaluator writes `mission.csv` and `trajectory.csv`. See [`src/lawn_mower_navigation/README.md`](../src/lawn_mower_navigation/README.md).
 
 In the screenshots:
 
@@ -72,7 +74,7 @@ A 20 m × 12 m lawn with two beds.
 
 ![RViz view of the two_beds run](images/two-beds-rviz.png)
 
-In RViz, the orange line is the planned path, the green arrows are the true pose from Gazebo, and the blue arrow is the pose of the EKF (`/localization/odom`) at the end of the run. The config is [`tools/mission.rviz`](tools/mission.rviz).
+In RViz, the orange line is the planned path, the green arrows are the true pose from Gazebo along the run, and the blue arrow is the pose the mission uses (`/localization/odom`) at the end. With no GNSS, that is the same Gazebo pose. The config is [`tools/mission.rviz`](tools/mission.rviz).
 
 ![Driven path and mowed area of the two_beds run](images/two-beds-coverage.png)
 
@@ -82,17 +84,16 @@ Runs with the Gazebo window, real-time factor about 0.9:
 
 | Result | `demo` | `two_beds` |
 | --- | --- | --- |
-| Coverage, planned and simulated | 77.2 % and 76.9 % | 79.6 % and 79.5 % |
-| Overlap, simulated | 50.5 % | 46.9 % |
-| Path length, planned and driven | 260.5 m and 266.9 m | 559.3 m and 568.9 m |
-| Duration, simulated | 789 s | 1517 s |
-| Tracking error, mean and largest | 0.02 m and 0.13 m | 0.01 m and 0.13 m |
-| Localisation error, mean and largest | 0.02 m and 0.07 m | 0.01 m and 0.07 m |
-| Body past the lawn edge, at most | 0.005 m | 0.011 m |
-| Energy: traction, blade, auxiliary | 8.5, 97.6, 3.3 Wh | 16.1, 186.4, 6.3 Wh |
-| Battery left | 95.7 % | 91.8 % |
+| Coverage, planned and simulated | 77.2 % and 77.3 % | 79.6 % and 79.7 % |
+| Overlap, simulated | 49.5 % | 46.8 % |
+| Path length, planned and driven | 260.5 m and 266.5 m | 559.3 m and 569.2 m |
+| Duration, simulated | 786 s | 1512 s |
+| Tracking error, mean and largest | 0.01 m and 0.12 m | 0.01 m and 0.13 m |
+| Body past the lawn edge, at most | 0.002 m | 0 m |
+| Energy: traction, blade, auxiliary | 8.5, 97.2, 3.3 Wh | 16.2, 185.8, 6.3 Wh |
+| Battery left | 95.7 % | 91.9 % |
 
-The results match the headless reference runs in [`src/lawn_mower_navigation/README.md`](../src/lawn_mower_navigation/README.md#reference-runs) to within 0.2 percentage points of coverage and 3 % of duration.
+The headless reference runs in [`src/lawn_mower_navigation/README.md`](../src/lawn_mower_navigation/README.md#reference-runs) were made with the GNSS and EKF localisation. Against them, coverage here is 0.2 to 0.4 percentage points higher, and the durations differ by less than 3 %.
 
 The planned coverage is what the planner expects from the plan. The simulated coverage is what the evaluator measures on the true path. They agree within 0.5 percentage points. Overlap is high in the hybrid pattern, because the contour passes run over the ends of the lanes.
 
@@ -105,9 +106,10 @@ The blade takes about 90 % of the energy: the simulation does not model grass, s
 The controller starts in `FAILSAFE` until the receiver has a frame, then goes to `MANUAL`, because the mode switch is low. The mission plans and waits. When the scripted operator puts the mode switch to automatic, the controller goes to `AUTO` and the mission starts. From the `demo` run:
 
 ```text
+[sim_pose]: Pose from the Gazebo ground truth (no GNSS)
 [controller]: Controller state: FAILSAFE
 [controller]: Controller state: MANUAL
-[mission]: Plan (hybrid): 4 cells, 73 segments, 260.5 m, 72 turns, 10.92 Wh traction, planned coverage 77.2 %, clearance 0.89 m, planned in 2.5 s
+[mission]: Plan (hybrid): 4 cells, 73 segments, 260.5 m, 72 turns, 10.92 Wh traction, planned coverage 77.2 %, clearance 0.89 m, planned in 2.8 s
 [mission]: Mission WAITING
 [rc_transmitter]: Operator: mode switch to automatic, blade switch on
 [controller]: Controller state: AUTO
@@ -122,15 +124,15 @@ With a `demo` run in the Gazebo window, `safety_check` played the operator: it t
 
 ```text
 ok   mowing in automatic mode                     controller AUTO     mission RUNNING speed 0.33 m/s blade 5008 rpm
-ok   operator switches to manual, sticks centred  controller MANUAL   mission PAUSED  speed 0.00 m/s blade 5994 rpm
+ok   operator switches to manual, sticks centred  controller MANUAL   mission PAUSED  speed 0.00 m/s blade 5993 rpm
 ok   operator pushes the throttle                 controller MANUAL   mission PAUSED  speed 0.63 m/s blade 6000 rpm
 ok   operator switches back to automatic          controller AUTO     mission RUNNING speed 0.01 m/s blade 6000 rpm
-ok   transmitter off: radio link lost             controller FAILSAFE mission PAUSED  speed 0.00 m/s blade   21 rpm
+ok   transmitter off: radio link lost             controller FAILSAFE mission PAUSED  speed 0.00 m/s blade   22 rpm
 ok   transmitter back on                          controller AUTO     mission RUNNING speed 0.00 m/s blade 6000 rpm
 ok   emergency stop pressed                       controller ESTOP    mission PAUSED  speed 0.00 m/s blade   12 rpm
 ok   emergency stop released: still latched       controller ESTOP    mission PAUSED  speed 0.00 m/s blade    0 rpm
-ok   operator re-arms by switching to manual      controller MANUAL   mission PAUSED  speed 0.00 m/s blade 5482 rpm
-ok   operator switches to automatic again         controller AUTO     mission RUNNING speed 0.46 m/s blade 6000 rpm
+ok   operator re-arms by switching to manual      controller MANUAL   mission PAUSED  speed 0.00 m/s blade 5492 rpm
+ok   operator switches to automatic again         controller AUTO     mission RUNNING speed 0.51 m/s blade 6000 rpm
 All 10 steps passed
 ```
 
@@ -158,7 +160,7 @@ The runs used a container with the packages of the dev container image: ROS 2 Ly
    python3 docs/tools/gazebo_overlay.py &
    ```
 
-3. Optional: RViz. The true pose is in the `world` frame, the plan and the EKF in `map`, so link the two:
+3. Optional: RViz. The true pose is in the `world` frame, the plan and the mission pose in `map`, so link the two:
 
    ```bash
    ros2 run tf2_ros static_transform_publisher --frame-id world --child-frame-id map &
@@ -182,5 +184,7 @@ The runs used a container with the packages of the dev container image: ROS 2 Ly
    ```
 
 The launch ends when the evaluator has written the results, and Gazebo closes with it a few seconds later. Take the last screenshots as soon as the mission reports `DONE`.
+
+Start each run in a fresh container. A Gazebo server started soon after another one was killed in the same container sometimes hung: the robot was never spawned, and `ros_gz_sim` kept requesting the list of worlds.
 
 `plot_run.py` scores the trajectory as the evaluator does. It reads the rounded positions of `trajectory.csv`, so its coverage can differ from `mission.csv` by about 0.2 percentage points.

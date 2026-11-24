@@ -1,2 +1,2 @@
 lawn,robot,method,pattern,seed,duration_s,distance_m,coverage_pct,overlap_pct,mowed_area_m2,lawn_area_m2,footprint_excursion_m,tracking_mean_m,tracking_max_m,localization_mean_m,localization_max_m,traction_wh,blade_wh,auxiliary_wh,total_wh,battery_pct
-demo,faculty_robot_estimate,energy_ga,hybrid,0,789.18,266.9266,76.8689,50.5338,79.9437,104.0,0.005,0.02,0.1287,0.0158,0.0699,8.492,97.582,3.2965,109.3705,95.7277
+demo,faculty_robot_estimate,energy_ga,hybrid,0,786.06,266.4997,77.2652,49.4735,80.3558,104.0,0.0017,0.0147,0.1162,0.0001,0.0121,8.5422,97.157,3.2832,108.9824,95.7429

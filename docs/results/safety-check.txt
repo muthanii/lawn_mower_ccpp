@@ -1,11 +1,11 @@
 ok   mowing in automatic mode                     controller AUTO     mission RUNNING speed 0.33 m/s blade 5008 rpm
-ok   operator switches to manual, sticks centred  controller MANUAL   mission PAUSED  speed 0.00 m/s blade 5994 rpm
+ok   operator switches to manual, sticks centred  controller MANUAL   mission PAUSED  speed 0.00 m/s blade 5993 rpm
 ok   operator pushes the throttle                 controller MANUAL   mission PAUSED  speed 0.63 m/s blade 6000 rpm
 ok   operator switches back to automatic          controller AUTO     mission RUNNING speed 0.01 m/s blade 6000 rpm
-ok   transmitter off: radio link lost             controller FAILSAFE mission PAUSED  speed 0.00 m/s blade   21 rpm
+ok   transmitter off: radio link lost             controller FAILSAFE mission PAUSED  speed 0.00 m/s blade   22 rpm
 ok   transmitter back on                          controller AUTO     mission RUNNING speed 0.00 m/s blade 6000 rpm
 ok   emergency stop pressed                       controller ESTOP    mission PAUSED  speed 0.00 m/s blade   12 rpm
 ok   emergency stop released: still latched       controller ESTOP    mission PAUSED  speed 0.00 m/s blade    0 rpm
-ok   operator re-arms by switching to manual      controller MANUAL   mission PAUSED  speed 0.00 m/s blade 5482 rpm
-ok   operator switches to automatic again         controller AUTO     mission RUNNING speed 0.46 m/s blade 6000 rpm
+ok   operator re-arms by switching to manual      controller MANUAL   mission PAUSED  speed 0.00 m/s blade 5492 rpm
+ok   operator switches to automatic again         controller AUTO     mission RUNNING speed 0.51 m/s blade 6000 rpm
 All 10 steps passed
